@@ -1,0 +1,54 @@
+# CODEOWNERS for The HLD Handbook (public content repository).
+#
+# Every path has a default owner. PRs touching these paths get automatic
+# review requests from the listed owner(s).
+
+# Global default — applies to any path not listed below.
+*                                               @invincible04
+
+# ---------------------------------------------------------------------------
+# Content — the 181 markdown files that make up the handbook.
+# ---------------------------------------------------------------------------
+/content/part-0-prerequisites/                  @invincible04
+/content/part-1-core-fundamentals/              @invincible04
+/content/part-2-building-blocks/                @invincible04
+/content/part-3-distributed-systems-theory/     @invincible04
+/content/part-4-data-systems/                   @invincible04
+/content/part-5-architecture-patterns/          @invincible04
+/content/part-6-reliability-and-operations/     @invincible04
+/content/part-7-security-at-scale/              @invincible04
+/content/part-8-case-studies/                   @invincible04
+/content/part-9-ai-ml-system-design/            @invincible04
+/content/part-10-emerging-patterns/             @invincible04
+/content/part-11-interview-framework/           @invincible04
+/content/trade-offs/                            @invincible04
+
+/writing-guides/                                @invincible04
+/STYLE_GUIDE.md                                 @invincible04
+
+# ---------------------------------------------------------------------------
+# Validator scripts and lint configs — content quality tooling.
+# ---------------------------------------------------------------------------
+/scripts/                                       @invincible04
+/package.json                                   @invincible04
+/package-lock.json                              @invincible04
+/lychee.toml                                    @invincible04
+/.markdownlint.json                             @invincible04
+/.typos.toml                                    @invincible04
+/.vale.ini                                      @invincible04
+
+# ---------------------------------------------------------------------------
+# GitHub automation — workflows, issue templates, PR template, Dependabot.
+# ---------------------------------------------------------------------------
+/.github/                                       @invincible04
+
+# ---------------------------------------------------------------------------
+# Legal and governance.
+# ---------------------------------------------------------------------------
+/LICENSE                                        @invincible04
+/SECURITY.md                                    @invincible04
+/CODE_OF_CONDUCT.md                             @invincible04
+/CITATION.cff                                   @invincible04
+/CONTRIBUTING.md                                @invincible04
+/CONTRIBUTORS.md                                @invincible04
+/README.md                                      @invincible04

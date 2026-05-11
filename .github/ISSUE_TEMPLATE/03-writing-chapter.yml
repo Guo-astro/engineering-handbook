@@ -1,0 +1,76 @@
+name: Claim a Chapter
+description: Announce that you are writing a specific chapter (reserves it to avoid duplicate work)
+title: "Writing: "
+labels: ["content: writing", "in progress"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for volunteering to write a chapter! This issue reserves the topic
+        so no one else duplicates your work. Please read [CONTRIBUTING.md](https://github.com/handbook-academy/hld-handbook/blob/main/CONTRIBUTING.md)
+        and [STYLE_GUIDE.md](https://github.com/handbook-academy/hld-handbook/blob/main/STYLE_GUIDE.md) before starting.
+  - type: input
+    id: chapter
+    attributes:
+      label: Chapter title
+      placeholder: "Distributed Tracing at Scale"
+    validations:
+      required: true
+  - type: dropdown
+    id: part
+    attributes:
+      label: Part
+      options:
+        - Part 0 - Prerequisites
+        - Part 1 - Core Fundamentals
+        - Part 2 - Building Blocks
+        - Part 3 - Distributed Systems Theory
+        - Part 4 - Data Systems
+        - Part 5 - Architecture Patterns
+        - Part 6 - Reliability & Operations
+        - Part 7 - Security at Scale
+        - Part 8 - Case Studies
+        - Part 9 - AI & ML System Design
+        - Part 10 - Frontier & Operational Topics
+        - Part 11 - Interview Framework
+        - Trade-offs Library
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Planned scope
+      description: What topics will you cover? How deep will you go?
+    validations:
+      required: true
+  - type: input
+    id: word_count
+    attributes:
+      label: Expected word count
+      placeholder: "3,500-4,500"
+    validations:
+      required: true
+  - type: input
+    id: deadline
+    attributes:
+      label: Self-imposed deadline
+      description: When do you expect to submit the PR?
+      placeholder: "2 weeks from today"
+    validations:
+      required: true
+  - type: textarea
+    id: background
+    attributes:
+      label: Your background with this topic
+      description: Have you built/operated systems related to this chapter?
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: Acknowledgements
+      options:
+        - label: I have read CONTRIBUTING.md and STYLE_GUIDE.md
+          required: true
+        - label: I understand the chapter template requirements (frontmatter, diagrams, citations, flashcards)
+          required: true
+        - label: I will submit a draft PR within my stated deadline or notify maintainers if delayed
+          required: true

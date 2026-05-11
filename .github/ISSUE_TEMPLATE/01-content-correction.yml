@@ -1,0 +1,55 @@
+name: Content Correction
+description: Report a factual error, outdated information, or broken link in a chapter
+title: "Fix: "
+labels: ["content: correction"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Help us keep the content accurate. Please identify the specific error below.
+  - type: input
+    id: chapter
+    attributes:
+      label: Chapter
+      description: Which chapter contains the error?
+      placeholder: "content/part-2-building-blocks/03-caching.md"
+    validations:
+      required: true
+  - type: input
+    id: location
+    attributes:
+      label: Location in chapter
+      description: Section heading, line number, or quote the sentence.
+      placeholder: "Section 'Cache Invalidation', paragraph 2"
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: What is incorrect?
+      description: Describe the error and what the correct information should be.
+      placeholder: |
+        The chapter states Redis supports 1M ops/sec per node, but the actual
+        benchmark from Redis Labs (2024) shows ~500K ops/sec for GET operations
+        on a single c5.2xlarge instance.
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Source for the correction
+      description: Link to the primary source that shows the correct information.
+      placeholder: "https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/benchmarks/"
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Minor (typo, formatting, style)
+        - Moderate (misleading but not technically wrong)
+        - Major (factually incorrect claim)
+        - Critical (could lead to bad architectural decisions)
+    validations:
+      required: true

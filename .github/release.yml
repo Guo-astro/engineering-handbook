@@ -1,0 +1,14 @@
+changelog:
+  categories:
+    - title: "New Chapters"
+      labels: ["content: new", "content: writing"]
+    - title: "Content Improvements"
+      labels: ["content: correction", "content: request", "enhancement"]
+    - title: "Translations"
+      labels: ["translation"]
+    - title: "Tooling & Dependencies"
+      labels: ["dependencies", "ci"]
+    - title: "Other Changes"
+      labels: ["*"]
+  exclude:
+    labels: ["stale", "duplicate", "wontfix"]

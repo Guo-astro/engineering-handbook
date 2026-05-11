@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# -----------------------------------------------------------------------------
+# Pre-commit hook: auto-update `date_updated` in frontmatter of staged content.
+#
+# Runs for every `git commit` unless bypassed via `--no-verify`.
+#
+# What it does:
+#   1. Lists all files staged for this commit under `content/*.md`.
+#   2. Calls scripts/update-frontmatter-dates.mjs with those paths.
+#      The script sets `date_updated: <today>` on each, idempotently.
+#   3. Re-stages any file the script modified so the bumped date lands in
+#      the same commit.
+#
+# Escape hatches:
+#   - `git commit --no-verify` skips all hooks (standard git behaviour).
+#   - `HLD_SKIP_DATE_UPDATE=1 git commit` runs the hook but the script
+#     no-ops, so you can still get any other future pre-commit checks.
+#
+# Install:
+#   npm run hooks:install   (configures core.hooksPath to .githooks/)
+#
+# Portable across macOS (BSD tools) and Linux (GNU tools).
+# -----------------------------------------------------------------------------
+
+set -euo pipefail
+
+# Collect staged additions, modifications, and renames (no deletions) whose
+# path is a content markdown file. --diff-filter=ACMR excludes deletions.
+# NUL-terminated output protects paths that contain whitespace.
+staged_files=()
+while IFS= read -r -d '' path; do
+  case "$path" in
+    content/*.md) staged_files+=("$path") ;;
+  esac
+done < <(git diff --cached --name-only --diff-filter=ACMR -z)
+
+# Nothing to do.
+if [[ ${#staged_files[@]} -eq 0 ]]; then
+  exit 0
+fi
+
+# Run the date-bump script. It prints one updated path per line on stdout.
+# Passing paths as separate argv elements avoids any shell splitting issues.
+updated_output=$(node scripts/update-frontmatter-dates.mjs "${staged_files[@]}")
+
+# Nothing was changed (all files already carry today's date, or none had
+# frontmatter, or script was skipped via env var).
+if [[ -z "$updated_output" ]]; then
+  exit 0
+fi
+
+# Re-stage each updated file so the new date lands in this commit.
+count=0
+while IFS= read -r path; do
+  if [[ -n "$path" ]]; then
+    git add -- "$path"
+    count=$((count + 1))
+  fi
+done <<< "$updated_output"
+
+echo "[pre-commit] Bumped date_updated on $count file(s)."

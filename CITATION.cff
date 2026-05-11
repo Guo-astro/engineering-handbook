@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use or reference this project, please cite it as below."
+type: dataset
+title: "The HLD Handbook: Open-Source High-Level Design Curriculum"
+abstract: >-
+  An open-source High-Level Design and System Design handbook containing
+  159 teaching chapters across 12 parts plus a 22-page trade-offs library
+  (181 total pages, approximately 772,000 words). Covers everything from
+  networking prerequisites to LLM serving architectures, with 719 Mermaid
+  diagrams and 3,200+ citations to primary sources.
+authors:
+  - family-names: Soni
+    given-names: Aayush
+    alias: invincible04
+    email: hello@handbook.academy
+url: "https://hld.handbook.academy"
+repository-code: "https://github.com/handbook-academy/hld-handbook"
+license: CC-BY-SA-4.0
+keywords:
+  - system-design
+  - high-level-design
+  - distributed-systems
+  - software-architecture
+  - interview-preparation
+  - case-studies
+  - open-source-education

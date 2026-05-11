@@ -1,0 +1,68 @@
+name: Website Bug
+description: Report a rendering issue, broken feature, or display bug on hld.handbook.academy
+title: "Site: "
+labels: ["bug: website"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Found something broken on [hld.handbook.academy](https://hld.handbook.academy)?
+        Thanks for taking the time to report it.
+
+        For issues with the underlying chapter *content* (typos, factual errors, broken links),
+        use the **Content Correction** template instead.
+  - type: input
+    id: url
+    attributes:
+      label: URL where the bug occurs
+      description: Paste the exact URL from your browser address bar.
+      placeholder: "https://hld.handbook.academy/curriculum/core-fundamentals/scalability/"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What is broken?
+      description: Describe what you expected to see and what actually happened.
+      placeholder: |
+        The Mermaid diagram in the "Horizontal Scaling" section does not render on mobile Safari --
+        I see the raw code block instead of a diagram. On desktop Chrome it renders fine.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce this?
+      placeholder: |
+        1. Open hld.handbook.academy/curriculum/core-fundamentals/scalability/ on iPhone Safari
+        2. Scroll to the "Horizontal Scaling" section
+        3. Diagram does not render
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser / device
+      description: Browser name + version, and device if mobile.
+      placeholder: "Safari 18.0 on iPhone 15 Pro / iOS 18.1"
+    validations:
+      required: true
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot (optional)
+      description: Drag and drop a screenshot if it helps. A video recording is even better for interactive bugs.
+    validations:
+      required: false
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Minor (cosmetic -- spacing, color, small visual glitch)
+        - Moderate (feature works but awkwardly)
+        - Major (content is unreadable or a feature is broken)
+        - Critical (site won't load, security concern, data loss)
+    validations:
+      required: true

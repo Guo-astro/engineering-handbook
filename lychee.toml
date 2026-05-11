@@ -1,0 +1,38 @@
+cache = true
+verbose = "info"
+no_progress = false
+
+exclude_path = [
+  "node_modules",
+  "site/dist",
+  ".git",
+  "docs",
+]
+
+# Accept 2xx, 403/406 (ACM/IEEE/Springer/Uber block HEAD requests),
+# 401 (Reuters paywall — content exists), 429 (rate limit).
+accept = [200, 201, 202, 203, 204, 206, 401, 403, 406, 429]
+
+# Retry settings.
+max_retries = 2
+retry_wait_time = 5
+
+# Timeout per URL.
+timeout = 30
+
+# User-Agent for requests (avoids 403s from some servers).
+user_agent = "lychee-action/HLD-Handbook-CI (+https://github.com/handbook-academy/hld-handbook)"
+
+# Exclude known-finicky domains where heuristic validation is unreliable.
+exclude = [
+  # LinkedIn blocks unauthenticated HEAD requests
+  "https://www.linkedin.com/",
+  # Twitter/X requires auth for most paths
+  "https://x.com/",
+  "https://twitter.com/",
+  # Some vendor docs rate-limit aggressively
+  "https://docs.oracle.com/",
+]
+
+# Don't check mail links.
+include_mail = false

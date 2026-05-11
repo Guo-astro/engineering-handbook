@@ -1,0 +1,53 @@
+{
+  "name": "hld-handbook",
+  "version": "0.0.0",
+  "description": "The HLD Handbook - Open-source High-Level Design and System Design handbook content",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "markdownlint-cli2 \"content/**/*.md\" \"*.md\" \".github/**/*.md\"",
+    "lint:fix": "markdownlint-cli2 --fix \"content/**/*.md\" \"*.md\"",
+    "check:links": "lychee --config lychee.toml content",
+    "check:citations": "node scripts/check-citations.mjs",
+    "check:frontmatter": "node scripts/check-frontmatter.mjs",
+    "check:mermaid": "node scripts/check-mermaid.mjs",
+    "check:typos": "typos --config .typos.toml",
+    "check:all": "npm run lint && npm run check:typos && npm run check:citations && npm run check:frontmatter && npm run check:mermaid && npm run check:links",
+    "prose": "vale content/",
+    "stats": "node scripts/content-stats.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1",
+    "markdownlint-cli2": "^0.14.0",
+    "mermaid": "^11.14.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "npm@10.8.1",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/handbook-academy/hld-handbook.git"
+  },
+  "bugs": {
+    "url": "https://github.com/handbook-academy/hld-handbook/issues"
+  },
+  "homepage": "https://hld.handbook.academy",
+  "keywords": [
+    "system-design",
+    "high-level-design",
+    "hld",
+    "interview",
+    "architecture",
+    "distributed-systems",
+    "handbook",
+    "curriculum",
+    "open-source"
+  ],
+  "license": "CC-BY-SA-4.0",
+  "author": {
+    "name": "The HLD Handbook Contributors",
+    "email": "hello@handbook.academy",
+    "url": "https://handbook.academy"
+  }
+}

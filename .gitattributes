@@ -1,0 +1,38 @@
+# Auto-detect text files and normalise line endings to LF
+* text=auto eol=lf
+
+# Explicitly declare text files
+*.md text
+*.yml text
+*.yaml text
+*.json text
+*.toml text
+*.cfg text
+*.ini text
+*.py text
+*.mjs text
+*.js text
+*.css text
+*.html text
+*.svg text
+*.txt text
+
+# Binary files (no line-ending conversion)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
+
+# Linguist overrides -- classify content as documentation for accurate language stats
+content/** linguist-documentation
+writing-guides/** linguist-documentation
+*.md linguist-documentation
+
+# Keep generated lockfiles as-is
+package-lock.json -diff linguist-generated

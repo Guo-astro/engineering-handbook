@@ -1,0 +1,127 @@
+name: Content CI
+
+on:
+  pull_request:
+    paths:
+      - 'content/**'
+      - '**.md'
+      - 'scripts/**'
+      - 'writing-guides/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/content-ci.yml'
+      - '.markdownlint.json'
+      - '.vale.ini'
+      - '.typos.toml'
+      - 'lychee.toml'
+  push:
+    branches: [main]
+    paths:
+      - 'content/**'
+      - '**.md'
+      - 'scripts/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  markdown-lint:
+    name: Markdown lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DavidAnson/markdownlint-cli2-action@v19
+        with:
+          globs: |
+            content/**/*.md
+            *.md
+            .github/**/*.md
+
+  prose-lint:
+    name: Prose lint (Vale)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: errata-ai/vale-action@reviewdog
+        with:
+          reporter: github-pr-review
+          fail_on_error: false
+          files: content
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  spell-check:
+    name: Spell check (typos)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: crate-ci/typos@v1
+        with:
+          files: ./content ./*.md
+
+  link-check:
+    name: Link check (lychee)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: .lycheecache
+          key: cache-lychee-${{ github.sha }}
+          restore-keys: cache-lychee-
+      - uses: lycheeverse/lychee-action@v2
+        with:
+          args: >
+            --config lychee.toml
+            --cache
+            --max-cache-age 7d
+            --no-progress
+            content
+          fail: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  citation-integrity:
+    name: Citation integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/check-citations.mjs
+
+  frontmatter-check:
+    name: Frontmatter schema
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/check-frontmatter.mjs
+
+  mermaid-validation:
+    name: Mermaid diagram syntax
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: node scripts/check-mermaid.mjs --verbose

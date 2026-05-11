@@ -1,0 +1,64 @@
+{
+  "default": true,
+  "line-length": false,
+  "no-inline-html": {
+    "allowed_elements": [
+      "details",
+      "summary",
+      "br",
+      "kbd",
+      "sub",
+      "sup",
+      "p",
+      "h1",
+      "h2",
+      "h3",
+      "table",
+      "thead",
+      "tbody",
+      "tr",
+      "th",
+      "td",
+      "div",
+      "a",
+      "img",
+      "strong",
+      "em"
+    ]
+  },
+  "no-bare-urls": false,
+  "no-blanks-blockquote": false,
+  "single-title": false,
+  "no-emphasis-as-heading": false,
+  "link-image-reference-definitions": false,
+  "no-duplicate-heading": {
+    "siblings_only": true
+  },
+  "first-line-heading": false,
+  "no-trailing-punctuation": {
+    "punctuation": ".,;:。，；"
+  },
+  "fenced-code-language": true,
+  "code-block-style": {
+    "style": "fenced"
+  },
+  "list-marker-space": true,
+  "ul-style": {
+    "style": "dash"
+  },
+  "emphasis-style": {
+    "style": "asterisk"
+  },
+  "strong-style": {
+    "style": "asterisk"
+  },
+  "no-space-in-code": true,
+  "no-space-in-emphasis": true,
+  "no-space-in-links": true,
+  "no-multiple-blanks": {
+    "maximum": 2
+  },
+  "blanks-around-headings": true,
+  "blanks-around-fences": true,
+  "blanks-around-lists": true
+}

@@ -1,0 +1,183 @@
+{
+  "_comment": "Canonical technology allowlist for the `technologies:` frontmatter field on chapter files. Adding a technology here does not add it to any chapter; chapters declare coverage explicitly in their own frontmatter. Inclusion rule for a chapter to list a technology: the chapter must either (a) devote ~500+ words (roughly a full subsection) to it, or (b) use it as the primary chosen example in a major comparison, trade-off, or worked case study. Passing mentions (`unlike Kafka`, `Redis also has this`) do not qualify. This list and the `categories` map below are consumed by scripts/check-frontmatter.mjs (validation) and site/generate.py (the /technologies/ index page). When adding a new technology: include it in `allowed`, assign it to a category, and pick a canonical capitalisation that matches the vendor's own writing (e.g. PostgreSQL not postgres, Cassandra not cassandra). Aliases like `Postgres` and `WebSocket` (singular) should NOT be added; authors should use the canonical form.",
+  "allowed": [
+    "PostgreSQL",
+    "MySQL",
+    "MongoDB",
+    "Cassandra",
+    "ScyllaDB",
+    "DynamoDB",
+    "Redis",
+    "Memcached",
+    "Elasticsearch",
+    "OpenSearch",
+    "Neo4j",
+    "Spanner",
+    "CockroachDB",
+    "TiDB",
+    "Vitess",
+    "YugabyteDB",
+    "BigQuery",
+    "ClickHouse",
+    "Snowflake",
+    "Redshift",
+    "Druid",
+    "Pinot",
+    "Bigtable",
+    "HBase",
+    "InfluxDB",
+    "TimescaleDB",
+    "VictoriaMetrics",
+    "RocksDB",
+    "Pinecone",
+    "Weaviate",
+    "Milvus",
+    "Qdrant",
+    "Faiss",
+    "pgvector",
+    "Kafka",
+    "RabbitMQ",
+    "NATS",
+    "SQS",
+    "Kinesis",
+    "Pulsar",
+    "Flink",
+    "Spark",
+    "Debezium",
+    "Temporal",
+    "Airflow",
+    "ZooKeeper",
+    "etcd",
+    "Consul",
+    "Nginx",
+    "Envoy",
+    "HAProxy",
+    "Kong",
+    "Istio",
+    "Linkerd",
+    "Prometheus",
+    "Grafana",
+    "Jaeger",
+    "OpenTelemetry",
+    "Cloudflare",
+    "CloudFront",
+    "Akamai",
+    "Fastly",
+    "S3",
+    "Firebase",
+    "gRPC",
+    "GraphQL",
+    "WebSockets"
+  ],
+  "categories": {
+    "Relational databases": [
+      "PostgreSQL",
+      "MySQL",
+      "Spanner",
+      "CockroachDB"
+    ],
+    "Distributed SQL and sharding middleware": [
+      "TiDB",
+      "Vitess",
+      "YugabyteDB"
+    ],
+    "Key-value and document stores": [
+      "Redis",
+      "Memcached",
+      "DynamoDB",
+      "MongoDB"
+    ],
+    "Wide-column stores": [
+      "Cassandra",
+      "ScyllaDB",
+      "Bigtable",
+      "HBase"
+    ],
+    "Analytical and OLAP databases": [
+      "BigQuery",
+      "ClickHouse",
+      "Snowflake",
+      "Redshift",
+      "Druid",
+      "Pinot"
+    ],
+    "Time-series databases": [
+      "InfluxDB",
+      "TimescaleDB",
+      "VictoriaMetrics"
+    ],
+    "Graph databases": [
+      "Neo4j"
+    ],
+    "Search engines": [
+      "Elasticsearch",
+      "OpenSearch"
+    ],
+    "Vector databases and indexes": [
+      "Pinecone",
+      "Weaviate",
+      "Milvus",
+      "Qdrant",
+      "Faiss",
+      "pgvector"
+    ],
+    "Storage engines": [
+      "RocksDB"
+    ],
+    "Messaging and streaming": [
+      "Kafka",
+      "RabbitMQ",
+      "NATS",
+      "SQS",
+      "Kinesis",
+      "Pulsar"
+    ],
+    "Stream processing": [
+      "Flink",
+      "Spark"
+    ],
+    "Change data capture": [
+      "Debezium"
+    ],
+    "Workflow orchestration": [
+      "Temporal",
+      "Airflow"
+    ],
+    "Coordination and service discovery": [
+      "ZooKeeper",
+      "etcd",
+      "Consul"
+    ],
+    "Proxies and service mesh": [
+      "Nginx",
+      "Envoy",
+      "HAProxy",
+      "Kong",
+      "Istio",
+      "Linkerd"
+    ],
+    "Observability": [
+      "Prometheus",
+      "Grafana",
+      "Jaeger",
+      "OpenTelemetry"
+    ],
+    "CDN and edge": [
+      "Cloudflare",
+      "CloudFront",
+      "Akamai",
+      "Fastly"
+    ],
+    "Object storage": [
+      "S3"
+    ],
+    "Realtime and push": [
+      "Firebase"
+    ],
+    "Protocols": [
+      "gRPC",
+      "GraphQL",
+      "WebSockets"
+    ]
+  }
+}
