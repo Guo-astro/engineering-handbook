@@ -1,6 +1,6 @@
 # Style Guide
 
-This style guide defines **how we write** in the HLD Handbook. Every chapter is checked against these rules in CI and in human review.
+This style guide defines **how we write** in The Engineering Handbook (HLD, DSA, and any future curricula in this repo). Every chapter is checked against these rules in CI and in human review.
 
 If you are a contributor, read this once, then keep it open in a tab while you write.
 

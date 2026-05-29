@@ -1,16 +1,20 @@
 cff-version: 1.2.0
 message: "If you use or reference this project, please cite it as below."
 type: dataset
-title: "The HLD Handbook: Open-Source High-Level Design Curriculum"
+title: "The Engineering Handbook: Open-Source Engineering Curricula (HLD + DSA)"
 abstract: >-
-  An open-source High-Level Design and System Design handbook containing
-  159 teaching chapters across 12 parts plus a 22-page trade-offs library
-  (181 total pages, approximately 772,000 words). Covers everything from
-  networking prerequisites to LLM serving architectures, with 719 Mermaid
-  diagrams and 3,100+ citations to primary sources.
-  Also hosts a sibling open-source DSA (data structures and algorithms)
-  curriculum under content/dsa/, sharing the same license and contribution
-  workflow.
+  An open-source umbrella for in-depth engineering curricula, hosting two
+  sibling handbooks today and growing over time.
+  The HLD Handbook (content/hld/) contains 159 teaching chapters across 12
+  parts plus a 22-page trade-offs library (181 total pages, ~773,000 words,
+  719 Mermaid diagrams, 3,100+ citations) covering everything from networking
+  prerequisites to LLM serving architectures.
+  The DSA Handbook (content/dsa/) contains 120 teaching chapters across 15
+  parts, 37 pattern decision pages, 5 long-form LeetCode editorials, and 46
+  interactive widget specs (~470,000 words, 226 Mermaid diagrams), with sibling
+  Python / Java / C++ / Go solutions for 155 LeetCode problems.
+  All books share the same CC BY-SA 4.0 license, contribution workflow, and
+  CI quality bar.
 authors:
   - family-names: Soni
     given-names: Aayush

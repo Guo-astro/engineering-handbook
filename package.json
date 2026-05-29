@@ -1,7 +1,7 @@
 {
   "name": "engineering-handbook",
   "version": "0.0.0",
-  "description": "The HLD Handbook - Open-source High-Level Design and System Design handbook content",
+  "description": "The Engineering Handbook — open-source curricula (HLD, DSA, and more) under one CC BY-SA 4.0 license.",
   "private": true,
   "type": "module",
   "scripts": {
@@ -37,6 +37,10 @@
     "system-design",
     "high-level-design",
     "hld",
+    "data-structures",
+    "algorithms",
+    "dsa",
+    "leetcode",
     "interview",
     "architecture",
     "distributed-systems",
@@ -46,7 +50,7 @@
   ],
   "license": "CC-BY-SA-4.0",
   "author": {
-    "name": "The HLD Handbook Contributors",
+    "name": "The Engineering Handbook Contributors",
     "email": "hello@handbook.academy",
     "url": "https://handbook.academy"
   }

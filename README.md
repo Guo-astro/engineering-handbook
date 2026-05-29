@@ -2,12 +2,12 @@
 
 <img src="logo.svg" alt="Handbook Academy" width="160" />
 
-# Handbook Academy — HLD + DSA
+# The Engineering Handbook
 
-**Two open-source engineering handbooks under one CC BY-SA 4.0 license.**
+**Open-source engineering curricula under one CC BY-SA 4.0 license. HLD and DSA today; more to come.**
 
-HLD Handbook: 159 chapters + 22 trade-off pages · 181 pages · ~773,000 words · 653 Mermaid diagrams · 3,100+ citations
-DSA Handbook: 120 chapters across 15 parts · ~391,000 words · 226 Mermaid diagrams · sibling Python / Java / C++ / Go solutions for 155 LeetCode problems · 46 interactive widget specs
+HLD Handbook: 159 chapters + 22 trade-off pages · 181 pages · ~773,000 words · 719 Mermaid diagrams · 3,100+ citations
+DSA Handbook: 120 chapters across 15 parts · 37 pattern decision pages · 5 long-form editorials · ~470,000 words · 226 Mermaid diagrams · sibling Python / Java / C++ / Go solutions for 155 LeetCode problems · 46 interactive widget specs
 
 [![License: CC BY-SA 4.0](https://img.shields.io/badge/license-CC%20BY--SA%204.0-blue.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
@@ -52,12 +52,14 @@ DSA Handbook: 120 chapters across 15 parts · ~391,000 words · 226 Mermaid diag
 
 This repository hosts **two sibling open-source engineering handbooks** under `content/`, sharing the same CC BY-SA 4.0 license, the same contribution workflow, and the same CI quality bar:
 
-- **The HLD Handbook** (`content/hld/`) — an opinionated, end-to-end textbook on high-level software design, distributed systems, and modern infrastructure. 159 teaching chapters across 12 parts plus a 22-page Trade-offs Library — 181 pages, ~773,000 words, 653 Mermaid diagrams, 3,100+ citations. Equivalent in scope to a **~2,400-page book** — longer than *Designing Data-Intensive Applications* and Alex Xu's *System Design Interview* volumes 1+2 combined. Covers TCP/IP and the OS contract through to LLM serving, multi-agent orchestration, and post-quantum crypto.
-- **The DSA Handbook** (`content/dsa/`) — a practice-first data-structures-and-algorithms curriculum aimed at coding interviews and competitive programming. 120 chapters across 15 parts plus 37 pattern decision pages, 5 long-form LC editorials, and 46 interactive widget specs. ~391,000 words, 226 Mermaid diagrams. Each chapter teaches a structure or pattern, then walks the canonical LeetCode problems, with sibling `sol.py` / `sol.java` / `sol.cpp` / `sol.go` files for 155 problems. Python is inlined in the chapter; the other three languages are linked.
+- **The HLD Handbook** (`content/hld/`) — an opinionated, end-to-end textbook on high-level software design, distributed systems, and modern infrastructure. 159 teaching chapters across 12 parts plus a 22-page Trade-offs Library — 181 pages, ~773,000 words, 719 Mermaid diagrams, 3,100+ citations. Equivalent in scope to a **~2,400-page book** — longer than *Designing Data-Intensive Applications* and Alex Xu's *System Design Interview* volumes 1+2 combined. Covers TCP/IP and the OS contract through to LLM serving, multi-agent orchestration, and post-quantum crypto.
+- **The DSA Handbook** (`content/dsa/`) — a practice-first data-structures-and-algorithms curriculum aimed at coding interviews and competitive programming. 120 chapters across 15 parts plus 37 pattern decision pages, 5 long-form LC editorials, and 46 interactive widget specs. ~470,000 words, 226 Mermaid diagrams. Each chapter teaches a structure or pattern, then walks the canonical LeetCode problems, with sibling `sol.py` / `sol.java` / `sol.cpp` / `sol.go` files for 155 problems. Python is inlined in the chapter; the other three languages are linked.
+
+> **More curricula are planned.** This repo is structured as an umbrella so additional handbooks (e.g. operating systems, databases, ML systems) can land alongside HLD and DSA over time, sharing the same workflow and license.
 
 Every concept in either handbook is taught **inline** as a full-length article: introduction, first-principles explanation, diagrams, worked examples, trade-offs, production gotchas, citations to primary sources. No stubs. No "coming soon." No external blog redirects. No bullet outlines that tell you to go somewhere else to actually learn.
 
-Every `.md` file under `content/` also renders natively on GitHub — all 879 Mermaid diagrams display in the GitHub UI, all footnotes work, all cross-references resolve. The websites add search, dark mode, per-chapter diagram zoom, social cards, OG images, the interactive DSA widgets, and fast client-side navigation.
+Every `.md` file under `content/` also renders natively on GitHub — all 945 Mermaid diagrams display in the GitHub UI, all footnotes work, all cross-references resolve. The websites add search, dark mode, per-chapter diagram zoom, social cards, OG images, the interactive DSA widgets, and fast client-side navigation.
 
 Both handbooks are continuously updated. Every chapter's frontmatter declares `date_created` and `date_updated`, so you can see exactly how fresh each page is. We care about numbers being right today, not right in 2022.
 
@@ -1140,11 +1142,11 @@ If you have a loop on Monday:
 | Interactive widget specs            | —            | 46           | 46         |
 | Sibling code samples (per language) | —            | 155 problems × 4 langs ≈ 620 files | 620 |
 | **Total Markdown pages**            | **181**      | **162**      | **343**    |
-| Total words                         | ~773,000     | ~391,000     | ~1,164,000 |
-| Mermaid diagrams                    | **653**      | **226**      | **879**    |
+| Total words                         | ~773,000     | ~470,000     | ~1,240,000 |
+| Mermaid diagrams                    | **719**      | **226**      | **945**    |
 | Citations to primary sources        | **3,100+**   | hundreds     | 3,500+     |
-| Estimated total reading time        | ~110 hours   | ~50 hours    | ~160 hours |
-| Equivalent printed book page count  | ~2,400 pages | ~1,300 pages | ~3,700 pages |
+| Estimated total reading time        | ~110 hours   | ~60 hours    | ~170 hours |
+| Equivalent printed book page count  | ~2,400 pages | ~1,500 pages | ~3,900 pages |
 
 For comparison, the HLD book alone is longer than *Designing Data-Intensive Applications* (~600 pages) + Alex Xu's *System Design Interview* Vol. 1 (~300 pages) + Vol. 2 (~340 pages) combined. The DSA book is comparable in length to *Cracking the Coding Interview* (~700 pages) plus *Elements of Programming Interviews* (~480 pages).
 
@@ -1156,7 +1158,7 @@ Every chapter in this repository passes 7 automated CI checks on every PR. The v
 2. **[typos](https://github.com/crate-ci/typos)** — source-code spell-check with a project-specific allowlist for technical terms.
 3. **Citation integrity** — every `[^1]`-style footnote has a corresponding `[^1]: source` definition; every citation is a real URL; no orphan citations.
 4. **Frontmatter validation** — HLD chapters declare `title`, `difficulty`, `prerequisites`, `date_created`, `date_updated`, `reading_time_minutes`, `tags` (canonical taxonomy), and `technologies` (curated allowlist). DSA chapters declare `title`, `slug`, `part`, `chapter`, `difficulty`, `languages` (subset of `python`/`java`/`cpp`/`go`), `canonical_test`, `widgets`, and `ladder` (referencing `LC-NNN` IDs in `_problem-registry.yml`). Editorials and pattern decision pages have their own thinner schemas. See [`scripts/check-frontmatter.mjs`](scripts/check-frontmatter.mjs) for the per-book branches.
-5. **Mermaid diagram validation** — all 879 diagrams across both books must parse with `@mermaid-js/mermaid-cli` on CI so broken syntax doesn't ship.
+5. **Mermaid diagram validation** — all 945 diagrams across both books must parse with `@mermaid-js/mermaid-cli` on CI so broken syntax doesn't ship.
 6. **[Vale](https://vale.sh/)** — prose-style linter for voice, passive voice, weasel words, and banned phrases. Custom rules in `.vale.ini`.
 7. **[lychee](https://github.com/lycheeverse/lychee)** — external link checker run weekly; flags rotted URLs so citations stay valid.
 
@@ -1388,7 +1390,7 @@ Yes, and specifically: everything in this repository — both books' content, wr
 
 Yes. CC BY-SA 4.0 allows commercial use provided you:
 
-1. Attribute the original ("Adapted from The HLD Handbook, CC BY-SA 4.0, https://github.com/handbook-academy/engineering-handbook")
+1. Attribute the original ("Adapted from The Engineering Handbook, CC BY-SA 4.0, https://github.com/handbook-academy/engineering-handbook")
 2. License your derivative under the same CC BY-SA 4.0 terms
 3. Indicate what you changed
 
@@ -1404,7 +1406,7 @@ You can teach courses, run boot camps, build YouTube channels, or sell books der
 <details>
 <summary><strong>How is this different from `donnemartin/system-design-primer`?</strong></summary>
 
-`system-design-primer` is a link-dump README that points at scattered blog posts and talks. It's great as a discovery tool. The HLD Handbook is inline content — every topic is taught fully within this repo. They're complementary: `system-design-primer` for breadth of resources, this handbook for depth of teaching.
+`system-design-primer` is a link-dump README that points at scattered blog posts and talks. It's great as a discovery tool. The HLD Handbook in this repo is inline content — every topic is taught fully within these pages. They're complementary: `system-design-primer` for breadth of resources, this handbook for depth of teaching.
 </details>
 
 <details>
@@ -1495,19 +1497,19 @@ If you reference this project in academic work, blog posts, books, or courses:
 ### BibTeX
 
 ```bibtex
-@misc{handbook-academy,
+@misc{engineering-handbook,
   author       = {Soni, Aayush},
-  title        = {The HLD Handbook + DSA Handbook: Open-Source Engineering Curricula},
+  title        = {The Engineering Handbook: Open-Source Engineering Curricula (HLD + DSA)},
   year         = {2026},
   publisher    = {GitHub},
   url          = {https://github.com/handbook-academy/engineering-handbook},
-  note         = {HLD: 159 chapters + 22 trade-off pages, ~773K words. DSA: 120 chapters across 15 parts, ~391K words. CC BY-SA 4.0.}
+  note         = {HLD: 159 chapters + 22 trade-off pages, ~773K words. DSA: 120 chapters across 15 parts, ~470K words, 155 LeetCode problems with 4-language solutions. CC BY-SA 4.0.}
 }
 ```
 
 ### Prose
 
-> *"The HLD Handbook + DSA Handbook" by Aayush Soni, https://github.com/handbook-academy/engineering-handbook, CC BY-SA 4.0.*
+> *"The Engineering Handbook (HLD + DSA)" by Aayush Soni, https://github.com/handbook-academy/engineering-handbook, CC BY-SA 4.0.*
 
 ### Machine-readable
 

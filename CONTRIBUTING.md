@@ -1,4 +1,4 @@
-# Contributing to The HLD Handbook
+# Contributing to The Engineering Handbook
 
 Thank you for your interest in contributing. This project exists because people like you are willing to write, review, translate, and improve it in public.
 

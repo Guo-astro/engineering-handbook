@@ -9,6 +9,15 @@ body:
         Thank you for volunteering to write a chapter! This issue reserves the topic
         so no one else duplicates your work. Please read [CONTRIBUTING.md](https://github.com/handbook-academy/engineering-handbook/blob/main/CONTRIBUTING.md)
         and [STYLE_GUIDE.md](https://github.com/handbook-academy/engineering-handbook/blob/main/STYLE_GUIDE.md) before starting.
+  - type: dropdown
+    id: book
+    attributes:
+      label: Which book?
+      options:
+        - HLD Handbook (content/hld/)
+        - DSA Handbook (content/dsa/)
+    validations:
+      required: true
   - type: input
     id: chapter
     attributes:
@@ -16,24 +25,14 @@ body:
       placeholder: "Distributed Tracing at Scale"
     validations:
       required: true
-  - type: dropdown
+  - type: input
     id: part
     attributes:
       label: Part
-      options:
-        - Part 0 - Prerequisites
-        - Part 1 - Core Fundamentals
-        - Part 2 - Building Blocks
-        - Part 3 - Distributed Systems Theory
-        - Part 4 - Data Systems
-        - Part 5 - Architecture Patterns
-        - Part 6 - Reliability & Operations
-        - Part 7 - Security at Scale
-        - Part 8 - Case Studies
-        - Part 9 - AI & ML System Design
-        - Part 10 - Frontier & Operational Topics
-        - Part 11 - Interview Framework
-        - Trade-offs Library
+      description: |
+        HLD parts: Part 0 (Prerequisites) - Part 11 (Interview Framework), or Trade-offs Library.
+        DSA parts: Part 0 (Foundations) - Part 14 (Interview Framework), or Patterns / Editorials.
+      placeholder: "HLD Part 6 - Reliability & Operations"
     validations:
       required: true
   - type: textarea
