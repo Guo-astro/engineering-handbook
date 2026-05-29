@@ -12,7 +12,7 @@ body:
     attributes:
       label: Chapter
       description: Which chapter contains the error?
-      placeholder: "content/part-2-building-blocks/03-caching.md"
+      placeholder: "content/hld/part-2-building-blocks/03-caching.md"
     validations:
       required: true
   - type: input

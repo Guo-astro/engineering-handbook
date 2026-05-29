@@ -8,12 +8,15 @@ abstract: >-
   (181 total pages, approximately 772,000 words). Covers everything from
   networking prerequisites to LLM serving architectures, with 719 Mermaid
   diagrams and 3,100+ citations to primary sources.
+  Also hosts a sibling open-source DSA (data structures and algorithms)
+  curriculum under content/dsa/, sharing the same license and contribution
+  workflow.
 authors:
   - family-names: Soni
     given-names: Aayush
     alias: invincible04
     email: hello@handbook.academy
-url: "https://hld.handbook.academy"
+url: "https://handbook.academy"
 repository-code: "https://github.com/handbook-academy/hld-handbook"
 license: CC-BY-SA-4.0
 keywords:
@@ -24,3 +27,7 @@ keywords:
   - interview-preparation
   - case-studies
   - open-source-education
+  - data-structures
+  - algorithms
+  - dsa
+  - leetcode

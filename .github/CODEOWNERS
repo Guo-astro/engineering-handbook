@@ -7,21 +7,14 @@
 *                                               @invincible04
 
 # ---------------------------------------------------------------------------
-# Content — the 181 markdown files that make up the handbook.
+# Content — HLD curriculum (181 markdown files).
 # ---------------------------------------------------------------------------
-/content/part-0-prerequisites/                  @invincible04
-/content/part-1-core-fundamentals/              @invincible04
-/content/part-2-building-blocks/                @invincible04
-/content/part-3-distributed-systems-theory/     @invincible04
-/content/part-4-data-systems/                   @invincible04
-/content/part-5-architecture-patterns/          @invincible04
-/content/part-6-reliability-and-operations/     @invincible04
-/content/part-7-security-at-scale/              @invincible04
-/content/part-8-case-studies/                   @invincible04
-/content/part-9-ai-ml-system-design/            @invincible04
-/content/part-10-emerging-patterns/             @invincible04
-/content/part-11-interview-framework/           @invincible04
-/content/trade-offs/                            @invincible04
+/content/hld/                                   @invincible04
+
+# ---------------------------------------------------------------------------
+# Content — DSA curriculum (chapters, editorials, patterns, widget specs).
+# ---------------------------------------------------------------------------
+/content/dsa/                                   @invincible04
 
 /writing-guides/                                @invincible04
 /STYLE_GUIDE.md                                 @invincible04

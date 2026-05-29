@@ -6,6 +6,7 @@ This guide covers **what** you can contribute, **how** to submit changes, and **
 
 ## Table of Contents
 
+- [Two books, one workflow](#two-books-one-workflow)
 - [Ways to Contribute](#ways-to-contribute)
 - [Before You Start](#before-you-start)
 - [The Contribution Workflow](#the-contribution-workflow)
@@ -15,6 +16,15 @@ This guide covers **what** you can contribute, **how** to submit changes, and **
 - [Review Process](#review-process)
 - [Recognition](#recognition)
 - [Questions](#questions)
+
+## Two books, one workflow
+
+This repo hosts two sibling open-source curricula: the HLD Handbook under [`content/hld/`](content/hld/) and the DSA Handbook under [`content/dsa/`](content/dsa/). Both share this contribution workflow, the same CC BY-SA 4.0 license, and the same CI quality bar — but they have **different chapter shapes** and you should match the book you're editing.
+
+- **HLD chapters** follow the chapter template described in [Quality Bar](#quality-bar) below: intro → first principles → diagrams → worked example → trade-offs → production gotchas → references. See [STYLE_GUIDE.md](STYLE_GUIDE.md) for voice and structure.
+- **DSA chapters** are practice-first: a tight cheat-sheet table, a deep dive on the data structure or pattern, prompt cards for representative LeetCode problems, and `<details>` solution + common-mistakes blocks. Code samples live as sibling files (`sol.py`, `sol.java`, `sol.cpp`, `sol.go`) under each chapter's directory; the Python solution is inlined in the chapter, the others are linked. See [`content/dsa/part-1-linear-data-structures/00-arrays.md`](content/dsa/part-1-linear-data-structures/00-arrays.md) for the canonical shape and [STYLE_GUIDE.md § DSA-specific deviations](STYLE_GUIDE.md#dsa-specific-deviations) for the schema rules.
+
+The rest of this guide applies to both books unless noted.
 
 ## Ways to Contribute
 
@@ -38,9 +48,9 @@ Pick the contribution level that matches the time you have.
 
 Read a complete chapter to understand the expected depth, structure, and tone. Good references:
 
-- [0.0 Networking Fundamentals](content/part-0-prerequisites/00-networking-fundamentals.md)
-- [1.4 Back of Envelope Estimation](content/part-1-core-fundamentals/04-back-of-envelope-estimation.md)
-- [8.0 Case Study: URL Shortener](content/part-8-case-studies/00-url-shortener.md)
+- [0.0 Networking Fundamentals](content/hld/part-0-prerequisites/00-networking-fundamentals.md)
+- [1.4 Back of Envelope Estimation](content/hld/part-1-core-fundamentals/04-back-of-envelope-estimation.md)
+- [8.0 Case Study: URL Shortener](content/hld/part-8-case-studies/00-url-shortener.md)
 
 ### Read the Style Guide
 
@@ -134,7 +144,7 @@ Every new chapter must include these sections in this order:
 12. **Further Reading** (with real URLs)
 13. **Flashcards** (2 to 3 Q/A pairs in blockquotes)
 
-See any complete chapter in `content/part-0-prerequisites/` for an example. For Part 8 case studies and trade-off pages, use the dedicated templates in [writing-guides/](writing-guides/).
+See any complete chapter in `content/hld/part-0-prerequisites/` for an example. For Part 8 case studies and trade-off pages, use the dedicated templates in [writing-guides/](writing-guides/).
 
 ### Diagrams
 
