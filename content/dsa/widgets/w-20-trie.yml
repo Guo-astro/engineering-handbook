@@ -1,0 +1,648 @@
+# Trie — insert + prefix walk (+ frequency-extended autocomplete)
+# Dual-panel shared widget. Panel `default` (chapter 6.8 Tries) animates
+# three inserts (car, cat, card) into an empty 26-way trie, then a prefix
+# walk on "ca". Panel `panel-b` (chapter 13.4 Trie autocomplete) renders
+# the SAME trie shape but with each node's top-k frequency cache visible:
+# inputs ("car", 30), ("cat", 20), ("card", 10) seed the cache, then a
+# topk("ca", 2) reads the cache at n_ca directly to return ["car", "cat"].
+# The dual-panel layout makes the 6.8 -> 13.4 contrast literal: same trie,
+# two lenses (binary is_end flag vs cached top-k).
+#
+# Tracestep buffers, verified against the §2.2 Python
+# references on identical inputs.
+
+id: w-20-trie
+title: "Trie — insert + prefix walk + frequency autocomplete"
+type: dual-panel-shared
+level: 1
+modes: [preset]
+
+caps:
+  fixed_input: true
+  combined_step_count: 27
+  inserts_max_count: 6
+  insert_max_length: 8
+  walk_max_length: 8
+
+commands:
+  - name: createNode
+    payload: { parent_id: 'string', edge_char: 'string', new_node_id: 'string' }
+    description: "Allocate a new trie node under parent, on the named character edge."
+  - name: descend
+    payload: { from_id: 'string', to_id: 'string' }
+    description: "Move the cursor down to the child node along the current character."
+  - name: reuseNode
+    payload: { node_id: 'string', edge_char: 'string' }
+    description: "The character's child already exists; reuse it without allocating."
+  - name: markEnd
+    payload: { node_id: 'string' }
+    description: "Set is_end = true at the node where the inserted word terminates."
+  - name: follow
+    payload: { from_id: 'string', to_id: 'string', edge_char: 'string' }
+    description: "Prefix-walk step: follow the existing edge for the current character."
+  - name: answerStartsWith
+    payload: { result: 'boolean' }
+    description: "Walk completed; report startsWith answer."
+  - name: refreshTop
+    payload: { node_id: 'string', word: 'string', freq: 'int' }
+    description: "Update the per-node top-k cache after an input(word, freq) (panel-b only)."
+  - name: answerTopK
+    payload: { result: 'list<string>' }
+    description: "Walk completed; read the per-node cache and return the top-k word list (panel-b only)."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-20-trie-fallback.svg
+  keyframes_used: [0, 7, 14, 23, 26]
+
+panels:
+  default:
+    chapter: "6.8"
+    label: "Trie — insert(car), insert(cat), insert(card), startsWith(ca)"
+    canonical_input: |
+      inserts = ["car", "cat", "card"]
+      walk = "ca"
+      alphabet = "lowercase a-z (R = 26)"
+    presets: []
+    n_steps: 27
+    keyframes:
+      - step: 0
+        kind: init
+        state:
+          nodes: ["root"]
+          edges: []
+          is_end: []
+          cursor: "root"
+        narration: "Empty trie. Just root, no edges, no isEnd flags."
+      - step: 1
+        kind: createNode
+        payload: { parent_id: "root", edge_char: "c", new_node_id: "n_c" }
+        state:
+          nodes: ["root", "n_c"]
+          edges: [["root", "n_c", "c"]]
+          is_end: []
+          cursor: "root"
+          op: { word: "car", char: "c", char_idx: 0 }
+        narration: "Insert car, char 0 = c. Root has no c-child; create node n_c."
+      - step: 2
+        kind: descend
+        payload: { from_id: "root", to_id: "n_c" }
+        state:
+          nodes: ["root", "n_c"]
+          edges: [["root", "n_c", "c"]]
+          is_end: []
+          cursor: "n_c"
+        narration: "Descend to n_c."
+      - step: 3
+        kind: createNode
+        payload: { parent_id: "n_c", edge_char: "a", new_node_id: "n_ca" }
+        state:
+          nodes: ["root", "n_c", "n_ca"]
+          edges: [["root", "n_c", "c"], ["n_c", "n_ca", "a"]]
+          is_end: []
+          cursor: "n_c"
+          op: { word: "car", char: "a", char_idx: 1 }
+        narration: "Char 1 = a. n_c has no a-child; create n_ca."
+      - step: 4
+        kind: descend
+        payload: { from_id: "n_c", to_id: "n_ca" }
+        state:
+          nodes: ["root", "n_c", "n_ca"]
+          edges: [["root", "n_c", "c"], ["n_c", "n_ca", "a"]]
+          is_end: []
+          cursor: "n_ca"
+        narration: "Descend to n_ca."
+      - step: 5
+        kind: createNode
+        payload: { parent_id: "n_ca", edge_char: "r", new_node_id: "n_car" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car"]
+          edges: [["root", "n_c", "c"], ["n_c", "n_ca", "a"], ["n_ca", "n_car", "r"]]
+          is_end: []
+          cursor: "n_ca"
+          op: { word: "car", char: "r", char_idx: 2 }
+        narration: "Char 2 = r. n_ca has no r-child; create n_car."
+      - step: 6
+        kind: descend
+        payload: { from_id: "n_ca", to_id: "n_car" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car"]
+          edges: [["root", "n_c", "c"], ["n_c", "n_ca", "a"], ["n_ca", "n_car", "r"]]
+          is_end: []
+          cursor: "n_car"
+        narration: "Descend to n_car."
+      - step: 7
+        kind: markEnd
+        payload: { node_id: "n_car" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car"]
+          edges: [["root", "n_c", "c"], ["n_c", "n_ca", "a"], ["n_ca", "n_car", "r"]]
+          is_end: ["n_car"]
+          cursor: "n_car"
+        narration: "End of car. Mark n_car.is_end = true. Three nodes added; one terminal."
+      - step: 8
+        kind: reuseNode
+        payload: { node_id: "n_c", edge_char: "c" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car"]
+          edges: [["root", "n_c", "c"], ["n_c", "n_ca", "a"], ["n_ca", "n_car", "r"]]
+          is_end: ["n_car"]
+          cursor: "root"
+          op: { word: "cat", char: "c", char_idx: 0 }
+        narration: "Insert cat, char 0 = c. Root already has a c-child (n_c); reuse it."
+      - step: 9
+        kind: descend
+        payload: { from_id: "root", to_id: "n_c" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car"]
+          edges: [["root", "n_c", "c"], ["n_c", "n_ca", "a"], ["n_ca", "n_car", "r"]]
+          is_end: ["n_car"]
+          cursor: "n_c"
+        narration: "Descend to n_c. The shared prefix mechanic: zero new nodes for char 0."
+      - step: 10
+        kind: reuseNode
+        payload: { node_id: "n_ca", edge_char: "a" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car"]
+          edges: [["root", "n_c", "c"], ["n_c", "n_ca", "a"], ["n_ca", "n_car", "r"]]
+          is_end: ["n_car"]
+          cursor: "n_c"
+          op: { word: "cat", char: "a", char_idx: 1 }
+        narration: "Char 1 = a. n_c already has an a-child (n_ca); reuse."
+      - step: 11
+        kind: descend
+        payload: { from_id: "n_c", to_id: "n_ca" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car"]
+          edges: [["root", "n_c", "c"], ["n_c", "n_ca", "a"], ["n_ca", "n_car", "r"]]
+          is_end: ["n_car"]
+          cursor: "n_ca"
+        narration: "Descend to n_ca."
+      - step: 12
+        kind: createNode
+        payload: { parent_id: "n_ca", edge_char: "t", new_node_id: "n_cat" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car", "n_cat"]
+          edges:
+            - ["root", "n_c", "c"]
+            - ["n_c", "n_ca", "a"]
+            - ["n_ca", "n_car", "r"]
+            - ["n_ca", "n_cat", "t"]
+          is_end: ["n_car"]
+          cursor: "n_ca"
+          op: { word: "cat", char: "t", char_idx: 2 }
+        narration: "Char 2 = t. n_ca has no t-child; this is the branch point. Create n_cat."
+      - step: 13
+        kind: descend
+        payload: { from_id: "n_ca", to_id: "n_cat" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car", "n_cat"]
+          edges:
+            - ["root", "n_c", "c"]
+            - ["n_c", "n_ca", "a"]
+            - ["n_ca", "n_car", "r"]
+            - ["n_ca", "n_cat", "t"]
+          is_end: ["n_car"]
+          cursor: "n_cat"
+        narration: "Descend to n_cat."
+      - step: 14
+        kind: markEnd
+        payload: { node_id: "n_cat" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car", "n_cat"]
+          edges:
+            - ["root", "n_c", "c"]
+            - ["n_c", "n_ca", "a"]
+            - ["n_ca", "n_car", "r"]
+            - ["n_ca", "n_cat", "t"]
+          is_end: ["n_car", "n_cat"]
+          cursor: "n_cat"
+        narration: "End of cat. Mark n_cat.is_end = true. Inserting cat after car cost only one new node — that is the trie's value proposition."
+      - step: 15
+        kind: reuseNode
+        payload: { node_id: "n_c", edge_char: "c" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car", "n_cat"]
+          edges:
+            - ["root", "n_c", "c"]
+            - ["n_c", "n_ca", "a"]
+            - ["n_ca", "n_car", "r"]
+            - ["n_ca", "n_cat", "t"]
+          is_end: ["n_car", "n_cat"]
+          cursor: "root"
+          op: { word: "card", char: "c", char_idx: 0 }
+        narration: "Insert card, char 0 = c. Reuse n_c."
+      - step: 16
+        kind: descend
+        payload: { from_id: "root", to_id: "n_c" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car", "n_cat"]
+          edges:
+            - ["root", "n_c", "c"]
+            - ["n_c", "n_ca", "a"]
+            - ["n_ca", "n_car", "r"]
+            - ["n_ca", "n_cat", "t"]
+          is_end: ["n_car", "n_cat"]
+          cursor: "n_c"
+        narration: "Descend."
+      - step: 17
+        kind: reuseNode
+        payload: { node_id: "n_ca", edge_char: "a" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car", "n_cat"]
+          edges:
+            - ["root", "n_c", "c"]
+            - ["n_c", "n_ca", "a"]
+            - ["n_ca", "n_car", "r"]
+            - ["n_ca", "n_cat", "t"]
+          is_end: ["n_car", "n_cat"]
+          cursor: "n_c"
+          op: { word: "card", char: "a", char_idx: 1 }
+        narration: "Char 1 = a. Reuse n_ca."
+      - step: 18
+        kind: descend
+        payload: { from_id: "n_c", to_id: "n_ca" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car", "n_cat"]
+          edges:
+            - ["root", "n_c", "c"]
+            - ["n_c", "n_ca", "a"]
+            - ["n_ca", "n_car", "r"]
+            - ["n_ca", "n_cat", "t"]
+          is_end: ["n_car", "n_cat"]
+          cursor: "n_ca"
+        narration: "Descend."
+      - step: 19
+        kind: reuseNode
+        payload: { node_id: "n_car", edge_char: "r" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car", "n_cat"]
+          edges:
+            - ["root", "n_c", "c"]
+            - ["n_c", "n_ca", "a"]
+            - ["n_ca", "n_car", "r"]
+            - ["n_ca", "n_cat", "t"]
+          is_end: ["n_car", "n_cat"]
+          cursor: "n_ca"
+          op: { word: "card", char: "r", char_idx: 2 }
+        narration: "Char 2 = r. n_ca already has r-child (n_car); reuse."
+      - step: 20
+        kind: descend
+        payload: { from_id: "n_ca", to_id: "n_car" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car", "n_cat"]
+          edges:
+            - ["root", "n_c", "c"]
+            - ["n_c", "n_ca", "a"]
+            - ["n_ca", "n_car", "r"]
+            - ["n_ca", "n_cat", "t"]
+          is_end: ["n_car", "n_cat"]
+          cursor: "n_car"
+        narration: "Cursor is at n_car — a node that is_end (because car was inserted) AND will gain a child. is_end and leafness are not the same flag."
+      - step: 21
+        kind: createNode
+        payload: { parent_id: "n_car", edge_char: "d", new_node_id: "n_card" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car", "n_cat", "n_card"]
+          edges:
+            - ["root", "n_c", "c"]
+            - ["n_c", "n_ca", "a"]
+            - ["n_ca", "n_car", "r"]
+            - ["n_ca", "n_cat", "t"]
+            - ["n_car", "n_card", "d"]
+          is_end: ["n_car", "n_cat"]
+          cursor: "n_car"
+          op: { word: "card", char: "d", char_idx: 3 }
+        narration: "Char 3 = d. n_car has no d-child; create n_card. n_car keeps is_end = true."
+      - step: 22
+        kind: descend
+        payload: { from_id: "n_car", to_id: "n_card" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car", "n_cat", "n_card"]
+          edges:
+            - ["root", "n_c", "c"]
+            - ["n_c", "n_ca", "a"]
+            - ["n_ca", "n_car", "r"]
+            - ["n_ca", "n_cat", "t"]
+            - ["n_car", "n_card", "d"]
+          is_end: ["n_car", "n_cat"]
+          cursor: "n_card"
+        narration: "Descend to n_card."
+      - step: 23
+        kind: markEnd
+        payload: { node_id: "n_card" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car", "n_cat", "n_card"]
+          edges:
+            - ["root", "n_c", "c"]
+            - ["n_c", "n_ca", "a"]
+            - ["n_ca", "n_car", "r"]
+            - ["n_ca", "n_cat", "t"]
+            - ["n_car", "n_card", "d"]
+          is_end: ["n_car", "n_cat", "n_card"]
+          cursor: "n_card"
+        narration: "End of card. Three words inserted using six nodes. Without prefix sharing, the same three keys would need 3 + 3 + 4 = 10 nodes."
+      - step: 24
+        kind: follow
+        payload: { from_id: "root", to_id: "n_c", edge_char: "c" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car", "n_cat", "n_card"]
+          edges:
+            - ["root", "n_c", "c"]
+            - ["n_c", "n_ca", "a"]
+            - ["n_ca", "n_car", "r"]
+            - ["n_ca", "n_cat", "t"]
+            - ["n_car", "n_card", "d"]
+          is_end: ["n_car", "n_cat", "n_card"]
+          cursor: "n_c"
+          op: { walk: "ca", char: "c", char_idx: 0 }
+        narration: "startsWith(ca), char 0 = c. Follow root → n_c."
+      - step: 25
+        kind: follow
+        payload: { from_id: "n_c", to_id: "n_ca", edge_char: "a" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car", "n_cat", "n_card"]
+          edges:
+            - ["root", "n_c", "c"]
+            - ["n_c", "n_ca", "a"]
+            - ["n_ca", "n_car", "r"]
+            - ["n_ca", "n_cat", "t"]
+            - ["n_car", "n_card", "d"]
+          is_end: ["n_car", "n_cat", "n_card"]
+          cursor: "n_ca"
+          op: { walk: "ca", char: "a", char_idx: 1 }
+        narration: "Char 1 = a. Follow n_c → n_ca."
+      - step: 26
+        kind: answerStartsWith
+        payload: { result: true }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car", "n_cat", "n_card"]
+          edges:
+            - ["root", "n_c", "c"]
+            - ["n_c", "n_ca", "a"]
+            - ["n_ca", "n_car", "r"]
+            - ["n_ca", "n_cat", "t"]
+            - ["n_car", "n_card", "d"]
+          is_end: ["n_car", "n_cat", "n_card"]
+          cursor: "n_ca"
+          result: true
+        narration: "Walk reached a non-null node (n_ca). Return true. Two edges followed; cost is independent of how many words live in the trie."
+
+  panel-b:
+    chapter: "13.4"
+    label: "Top-k autocomplete: input(car/30, cat/20, card/10), topk(ca, 2)"
+    canonical_input: |
+      inserts = [("car", 30), ("cat", 20), ("card", 10)]
+      query = topk("ca", k=2)
+      K_CAP = 3 (per-node cache cap rendered in the widget badge)
+    presets: []
+    n_steps: 30
+    keyframes:
+      - step: 0
+        kind: init
+        state:
+          nodes: ["root"]
+          edges: []
+          is_end: []
+          cursor: "root"
+          top_at_root: []
+        narration: "Empty autocomplete trie. Root only; the cache at root is empty."
+      - step: 1
+        kind: refreshTop
+        payload: { node_id: "root", word: "car", freq: 30 }
+        state:
+          cursor: "root"
+          top_after: [[30, "car"]]
+          op: { phase: "input", word: "car", freq: 30, char: null, char_idx: -1 }
+        narration: "input(car, 30). The root cache gets refreshed first; root's top is the global top-k."
+      - step: 2
+        kind: createNode
+        payload: { parent_id: "root", edge_char: "c", new_node_id: "n_c" }
+        state:
+          nodes: ["root", "n_c"]
+          edges: [["root", "n_c", "c"]]
+          cursor: "root"
+          op: { phase: "input", word: "car", char: "c", char_idx: 0 }
+        narration: "Char 0 = c. No c-child yet; create n_c."
+      - step: 3
+        kind: refreshTop
+        payload: { node_id: "n_c", word: "car", freq: 30 }
+        state:
+          cursor: "n_c"
+          top_after: [[30, "car"]]
+        narration: "Descend to n_c and refresh its cache: car/30."
+      - step: 4
+        kind: createNode
+        payload: { parent_id: "n_c", edge_char: "a", new_node_id: "n_ca" }
+        state:
+          nodes: ["root", "n_c", "n_ca"]
+          edges: [["root", "n_c", "c"], ["n_c", "n_ca", "a"]]
+          cursor: "n_c"
+          op: { phase: "input", word: "car", char: "a", char_idx: 1 }
+        narration: "Char 1 = a. Create n_ca."
+      - step: 5
+        kind: refreshTop
+        payload: { node_id: "n_ca", word: "car", freq: 30 }
+        state:
+          cursor: "n_ca"
+          top_after: [[30, "car"]]
+        narration: "Descend to n_ca and refresh: car/30."
+      - step: 6
+        kind: createNode
+        payload: { parent_id: "n_ca", edge_char: "r", new_node_id: "n_car" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car"]
+          edges: [["root", "n_c", "c"], ["n_c", "n_ca", "a"], ["n_ca", "n_car", "r"]]
+          cursor: "n_ca"
+          op: { phase: "input", word: "car", char: "r", char_idx: 2 }
+        narration: "Char 2 = r. Create n_car."
+      - step: 7
+        kind: refreshTop
+        payload: { node_id: "n_car", word: "car", freq: 30 }
+        state:
+          cursor: "n_car"
+          top_after: [[30, "car"]]
+        narration: "Refresh n_car: car/30. Three nodes added; one cache entry per node."
+      - step: 8
+        kind: markEnd
+        payload: { node_id: "n_car" }
+        state:
+          is_end: ["n_car"]
+          cursor: "n_car"
+        narration: "Mark n_car.is_end = true. car is now a registered word."
+      - step: 9
+        kind: refreshTop
+        payload: { node_id: "root", word: "cat", freq: 20 }
+        state:
+          cursor: "root"
+          top_after: [[30, "car"], [20, "cat"]]
+          op: { phase: "input", word: "cat", freq: 20, char: null, char_idx: -1 }
+        narration: "input(cat, 20). Root cache: [car/30, cat/20]. Sorted DESC by score."
+      - step: 10
+        kind: reuseNode
+        payload: { node_id: "n_c", edge_char: "c" }
+        state:
+          cursor: "root"
+          op: { phase: "input", word: "cat", char: "c", char_idx: 0 }
+        narration: "Char 0 = c. Reuse n_c."
+      - step: 11
+        kind: refreshTop
+        payload: { node_id: "n_c", word: "cat", freq: 20 }
+        state:
+          cursor: "n_c"
+          top_after: [[30, "car"], [20, "cat"]]
+        narration: "Refresh n_c: [car/30, cat/20]."
+      - step: 12
+        kind: reuseNode
+        payload: { node_id: "n_ca", edge_char: "a" }
+        state:
+          cursor: "n_c"
+          op: { phase: "input", word: "cat", char: "a", char_idx: 1 }
+        narration: "Char 1 = a. Reuse n_ca."
+      - step: 13
+        kind: refreshTop
+        payload: { node_id: "n_ca", word: "cat", freq: 20 }
+        state:
+          cursor: "n_ca"
+          top_after: [[30, "car"], [20, "cat"]]
+        narration: "Refresh n_ca: [car/30, cat/20]. Both car and cat pass through n_ca."
+      - step: 14
+        kind: createNode
+        payload: { parent_id: "n_ca", edge_char: "t", new_node_id: "n_cat" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car", "n_cat"]
+          edges:
+            - ["root", "n_c", "c"]
+            - ["n_c", "n_ca", "a"]
+            - ["n_ca", "n_car", "r"]
+            - ["n_ca", "n_cat", "t"]
+          cursor: "n_ca"
+          op: { phase: "input", word: "cat", char: "t", char_idx: 2 }
+        narration: "Char 2 = t. Create n_cat."
+      - step: 15
+        kind: refreshTop
+        payload: { node_id: "n_cat", word: "cat", freq: 20 }
+        state:
+          cursor: "n_cat"
+          top_after: [[20, "cat"]]
+        narration: "Refresh n_cat: cat/20. n_cat sits below the branch; only cat passes through it."
+      - step: 16
+        kind: markEnd
+        payload: { node_id: "n_cat" }
+        state:
+          is_end: ["n_car", "n_cat"]
+          cursor: "n_cat"
+        narration: "Mark n_cat.is_end = true."
+      - step: 17
+        kind: refreshTop
+        payload: { node_id: "root", word: "card", freq: 10 }
+        state:
+          cursor: "root"
+          top_after: [[30, "car"], [20, "cat"], [10, "card"]]
+          op: { phase: "input", word: "card", freq: 10, char: null, char_idx: -1 }
+        narration: "input(card, 10). Root cache fills to 3 entries: [car/30, cat/20, card/10]."
+      - step: 18
+        kind: reuseNode
+        payload: { node_id: "n_c", edge_char: "c" }
+        state:
+          cursor: "root"
+          op: { phase: "input", word: "card", char: "c", char_idx: 0 }
+        narration: "Reuse n_c."
+      - step: 19
+        kind: refreshTop
+        payload: { node_id: "n_c", word: "card", freq: 10 }
+        state:
+          cursor: "n_c"
+          top_after: [[30, "car"], [20, "cat"], [10, "card"]]
+        narration: "Refresh n_c."
+      - step: 20
+        kind: reuseNode
+        payload: { node_id: "n_ca", edge_char: "a" }
+        state:
+          cursor: "n_c"
+          op: { phase: "input", word: "card", char: "a", char_idx: 1 }
+        narration: "Reuse n_ca."
+      - step: 21
+        kind: refreshTop
+        payload: { node_id: "n_ca", word: "card", freq: 10 }
+        state:
+          cursor: "n_ca"
+          top_after: [[30, "car"], [20, "cat"], [10, "card"]]
+        narration: "Refresh n_ca: [car/30, cat/20, card/10]. This cache is what topk(ca, 2) will read."
+      - step: 22
+        kind: reuseNode
+        payload: { node_id: "n_car", edge_char: "r" }
+        state:
+          cursor: "n_ca"
+          op: { phase: "input", word: "card", char: "r", char_idx: 2 }
+        narration: "Char 2 = r. Reuse n_car (the existing is_end node for car)."
+      - step: 23
+        kind: refreshTop
+        payload: { node_id: "n_car", word: "card", freq: 10 }
+        state:
+          cursor: "n_car"
+          top_after: [[30, "car"], [10, "card"]]
+        narration: "Refresh n_car: [car/30, card/10]. Both words pass through this node, and car keeps the top slot."
+      - step: 24
+        kind: createNode
+        payload: { parent_id: "n_car", edge_char: "d", new_node_id: "n_card" }
+        state:
+          nodes: ["root", "n_c", "n_ca", "n_car", "n_cat", "n_card"]
+          edges:
+            - ["root", "n_c", "c"]
+            - ["n_c", "n_ca", "a"]
+            - ["n_ca", "n_car", "r"]
+            - ["n_ca", "n_cat", "t"]
+            - ["n_car", "n_card", "d"]
+          cursor: "n_car"
+          op: { phase: "input", word: "card", char: "d", char_idx: 3 }
+        narration: "Char 3 = d. Create n_card. n_car is is_end AND has a child."
+      - step: 25
+        kind: refreshTop
+        payload: { node_id: "n_card", word: "card", freq: 10 }
+        state:
+          cursor: "n_card"
+          top_after: [[10, "card"]]
+        narration: "Refresh n_card: card/10."
+      - step: 26
+        kind: markEnd
+        payload: { node_id: "n_card" }
+        state:
+          is_end: ["n_car", "n_cat", "n_card"]
+          cursor: "n_card"
+        narration: "Mark n_card.is_end = true. Three words inserted; every node's cache is current."
+      - step: 27
+        kind: follow
+        payload: { from_id: "root", to_id: "n_c", edge_char: "c" }
+        state:
+          cursor: "n_c"
+          op: { phase: "topk", prefix: "ca", k: 2, char: "c", char_idx: 0 }
+        narration: "topk(ca, 2). Char 0 = c. Follow root -> n_c."
+      - step: 28
+        kind: follow
+        payload: { from_id: "n_c", to_id: "n_ca", edge_char: "a" }
+        state:
+          cursor: "n_ca"
+          op: { phase: "topk", prefix: "ca", k: 2, char: "a", char_idx: 1 }
+        narration: "Char 1 = a. Follow n_c -> n_ca."
+      - step: 29
+        kind: answerTopK
+        payload: { result: ["car", "cat"] }
+        state:
+          cursor: "n_ca"
+          top_at_node: [[30, "car"], [20, "cat"], [10, "card"]]
+          answer: ["car", "cat"]
+        narration: "Read n_ca.top[:2] directly. Answer: [car, cat]. No DFS, no heap; the cache is the answer."
+
+selector_default: default
+
+notes: |
+  Shipped May 2026 with chapter 6.8. Fixed input (no edit, no randomize):
+  the keys "car"/"cat"/"card" are tuned so that (a) the first two share
+  the "ca" prefix, surfacing the node-reuse mechanic; (b) "card"
+  extends "car", forcing the reader to see that an isEnd node still has
+  children; (c) the final startsWith("ca") traces only two edges,
+  showing the prefix-walk cost is independent of dictionary size.
+  Trace transcribed verbatim (27 steps), verified
+  against the §2.2 Python reference. Reduced-motion fallback uses
+  keyframes [0, 7, 14, 23, 26].

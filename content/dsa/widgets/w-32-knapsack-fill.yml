@@ -1,0 +1,344 @@
+# Knapsack DP table fill (0/1 + unbounded)
+# Dual-panel shared widget — chapter 9.4 owns panel-01 (0/1 knapsack,
+# right-to-left inner sweep), chapter 9.5 owns panel-unbounded (left-to-right).
+# The two panels render the SAME canonical input and the SAME 1D dp[] array;
+# only the inner-loop direction differs. That direction flip IS the lesson.
+
+id: w-32-knapsack-fill
+title: "Knapsack DP table fill (0/1 vs unbounded)"
+type: dual-panel-shared
+level: 1
+modes: [preset, randomize, edit]
+
+caps:
+  num_items: { min: 2, max: 8 }
+  capacity: { min: 1, max: 16 }
+  weights: { min: 1, max: 16 }
+  values: { min: 1, max: 99 }
+
+commands:
+  - name: pick_item
+    payload: { item_index: 'integer', weight: 'integer', value: 'integer' }
+    description: "Highlight the row for the current item being processed."
+  - name: relax_cell
+    payload:
+      a: 'integer'
+      from_a: 'integer'
+      candidate: 'integer'
+      current: 'integer'
+      updated: 'boolean'
+    description: |
+      Read dp[from_a], compare candidate = dp[from_a] + value against
+      current dp[a], write back if better. Highlight the read cell, then
+      the write cell. The read direction (from_a < a for unbounded;
+      from_a < a but the write is right-to-left for 0/1) is the visual.
+  - name: row_done
+    payload: { item_index: 'integer' }
+    description: "Item processed; flash the full dp[] row."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-32-knapsack-fill-fallback.svg
+  keyframes_used: [0, "first_relax", "n_steps/2", "n_steps-1"]
+
+panels:
+  panel-unbounded:
+    chapter: "9.5"
+    label: "Unbounded knapsack (left-to-right inner sweep)"
+    canonical_input: |
+      coins = [1, 2, 5]
+      amount = 11
+      problem: "LC 322 minimum coins"
+    presets:
+      - id: lc_322_min_coins
+        label: "Coin Change (LC 322), coins=[1,2,5], amount=11"
+        input: { coins: [1, 2, 5], amount: 11 }
+      - id: lc_322_unreachable
+        label: "Unreachable (coins=[2], amount=3)"
+        input: { coins: [2], amount: 3 }
+    n_steps: 14
+    keyframes:
+      - step: 0
+        kind: init
+        state:
+          coins: [1, 2, 5]
+          amount: 11
+          dp: [0, INF, INF, INF, INF, INF, INF, INF, INF, INF, INF, INF]
+          current_coin: null
+          current_a: null
+        narration: |
+          Initial state. dp[0] = 0 (zero coins make amount 0). Every other
+          cell is INF (unreachable). The algorithm fills dp[1..11] in
+          ascending order of `a`, and for each `a` tries every coin.
+      - step: 1
+        kind: pick_item
+        payload: { item_index: 0, weight: 1, value: 1 }
+        state:
+          dp: [0, INF, INF, INF, INF, INF, INF, INF, INF, INF, INF, INF]
+          current_coin: 1
+          current_a: 1
+        narration: "Outer iteration a = 1. Try coin c = 1."
+      - step: 2
+        kind: relax_cell
+        payload: { a: 1, from_a: 0, candidate: 1, current: INF, updated: true }
+        state:
+          dp: [0, 1, INF, INF, INF, INF, INF, INF, INF, INF, INF, INF]
+          current_coin: 1
+          current_a: 1
+        narration: |
+          dp[1 - 1] + 1 = dp[0] + 1 = 1, which beats INF. Write dp[1] = 1.
+          The read at dp[0] is to the LEFT of the write at dp[1]; this
+          left-to-right sweep is what allows reusing coin c = 1 multiple
+          times to reach larger amounts.
+      - step: 3
+        kind: pick_item
+        payload: { item_index: 0, weight: 1, value: 1 }
+        state:
+          dp: [0, 1, INF, INF, INF, INF, INF, INF, INF, INF, INF, INF]
+          current_coin: 1
+          current_a: 2
+        narration: "Outer iteration a = 2. Try coin c = 1 first."
+      - step: 4
+        kind: relax_cell
+        payload: { a: 2, from_a: 1, candidate: 2, current: INF, updated: true }
+        state:
+          dp: [0, 1, 2, INF, INF, INF, INF, INF, INF, INF, INF, INF]
+          current_coin: 1
+          current_a: 2
+        narration: |
+          dp[2 - 1] + 1 = dp[1] + 1 = 2. The dp[1] we just wrote in step 2
+          is now feeding back into dp[2] — that is reuse: coin c = 1 is
+          being packed twice, once into dp[1] and again into dp[2].
+      - step: 5
+        kind: relax_cell
+        payload: { a: 2, from_a: 0, candidate: 1, current: 2, updated: true }
+        state:
+          dp: [0, 1, 1, INF, INF, INF, INF, INF, INF, INF, INF, INF]
+          current_coin: 2
+          current_a: 2
+        narration: |
+          Now try coin c = 2. dp[2 - 2] + 1 = dp[0] + 1 = 1. Beats the
+          previous 2. Write dp[2] = 1. One coin of denomination 2
+          is better than two coins of denomination 1.
+      - step: 6
+        kind: row_done
+        state:
+          dp: [0, 1, 1, 2, 2, 1, 2, 2, 3, 3, 2, 3]
+          current_coin: null
+          current_a: null
+        narration: |
+          Continue the same procedure for a = 3..11. Each cell aggregates
+          over all three coins, picking the minimum coin count. The
+          intermediate fill omitted for brevity; final dp[] shown after
+          all iterations on coin set {1, 2, 5} complete.
+      - step: 7
+        kind: pick_item
+        payload: { item_index: 2, weight: 5, value: 1 }
+        state:
+          dp: [0, 1, 1, 2, 2, 1, 2, 2, 3, 3, 2, 3]
+          current_coin: 5
+          current_a: 5
+        narration: |
+          The dramatic moment. Outer iteration a = 5. After coins 1 and 2,
+          dp[5] holds 3 (coin combo 2 + 2 + 1). Now consider coin c = 5.
+      - step: 8
+        kind: relax_cell
+        payload: { a: 5, from_a: 0, candidate: 1, current: 3, updated: true }
+        state:
+          dp: [0, 1, 1, 2, 2, 1, 2, 2, 3, 3, 2, 3]
+          current_coin: 5
+          current_a: 5
+        narration: |
+          dp[5 - 5] + 1 = dp[0] + 1 = 1. Single coin of denomination 5
+          beats three smaller coins. dp[5] = 1.
+      - step: 9
+        kind: pick_item
+        payload: { item_index: 2, weight: 5, value: 1 }
+        state:
+          dp: [0, 1, 1, 2, 2, 1, 2, 2, 3, 3, 2, 3]
+          current_coin: 5
+          current_a: 10
+        narration: "Outer iteration a = 10. Try coin c = 5."
+      - step: 10
+        kind: relax_cell
+        payload: { a: 10, from_a: 5, candidate: 2, current: 3, updated: true }
+        state:
+          dp: [0, 1, 1, 2, 2, 1, 2, 2, 3, 3, 2, 3]
+          current_coin: 5
+          current_a: 10
+        narration: |
+          dp[10 - 5] + 1 = dp[5] + 1 = 2. The dp[5] = 1 we wrote in step 8
+          is feeding back into dp[10] — coin 5 is being packed twice. dp[10]
+          drops from 3 to 2. Two coins of denomination 5; one of
+          denomination 1 nowhere in the picture.
+      - step: 11
+        kind: pick_item
+        payload: { item_index: 2, weight: 5, value: 1 }
+        state:
+          dp: [0, 1, 1, 2, 2, 1, 2, 2, 3, 3, 2, 3]
+          current_coin: 5
+          current_a: 11
+        narration: "Outer iteration a = 11. Try coin c = 5."
+      - step: 12
+        kind: relax_cell
+        payload: { a: 11, from_a: 6, candidate: 3, current: 3, updated: false }
+        state:
+          dp: [0, 1, 1, 2, 2, 1, 2, 2, 3, 3, 2, 3]
+          current_coin: 5
+          current_a: 11
+        narration: |
+          dp[11 - 5] + 1 = dp[6] + 1 = 3. Ties the current 3; no improvement.
+          But the structure is set: dp[10] = 2, plus a coin of value 1
+          for the last unit, gives the answer.
+      - step: 13
+        kind: row_done
+        state:
+          dp: [0, 1, 1, 2, 2, 1, 2, 2, 3, 3, 2, 3]
+          current_coin: null
+          current_a: null
+        narration: "Loop complete. dp[11] = 3. Answer: 5 + 5 + 1."
+
+  panel-01:
+    chapter: "9.4"
+    label: "0/1 knapsack — LC 416 boolean subset-sum (right-to-left inner sweep)"
+    canonical_input: |
+      nums = [1, 5, 11, 5]
+      target = 11
+      problem: "LC 416 partition equal subset sum"
+    presets:
+      - id: lc_416_canonical
+        label: "Partition Equal Subset Sum (LC 416), nums=[1,5,11,5], target=11"
+        input: { nums: [1, 5, 11, 5], target: 11 }
+      - id: lc_416_no_partition
+        label: "Odd total -> immediate False (parity guard fires)"
+        input: { nums: [1, 2, 3, 5], target: -1 }
+    n_steps: 13
+    # Trace transcribed from the chapter prose at lines 144-148.
+    # Initial dp = [T,F,F,F,F,F,F,F,F,F,F,F] (length 12).
+    # After x=1: [T,T,F,F,F,F,F,F,F,F,F,F].
+    # After x=5: [T,T,F,F,F,T,T,F,F,F,F,F].
+    # After x=11: [T,T,F,F,F,T,T,F,F,F,F,T] -> early exit, item 3 (the
+    # second 5) never processed. Each item gets a row in the trace plus
+    # a few key relax events showing the right-to-left mechanic.
+    keyframes:
+      - step: 0
+        kind: init
+        state:
+          nums: [1, 5, 11, 5]
+          target: 11
+          dp: [true, false, false, false, false, false, false, false, false, false, false, false]
+          current_item: null
+          current_a: null
+          phase: "init"
+        narration: "Init dp[0..11] of length 12. Seed dp[0] = T (the empty subset reaches sum 0). Every other cell False. The seed isn't an optimization; it's the empty-subset entry that every later flip depends on."
+      - step: 1
+        kind: pick_item
+        payload: { item_index: 0, weight: 1, value: 1 }
+        state:
+          dp: [true, false, false, false, false, false, false, false, false, false, false, false]
+          current_coin: 1
+          current_a: 11
+          phase: "x=1"
+        narration: "Item 0: x = 1. Inner loop sweeps j = 11, 10, ..., 1 (right-to-left). Each cell reads dp[j - 1]; only j = 1 reads dp[0] = T."
+      - step: 2
+        kind: relax_cell
+        payload: { a: 1, from_a: 0, candidate: true, current: false, updated: true }
+        state:
+          dp: [true, true, false, false, false, false, false, false, false, false, false, false]
+          current_coin: 1
+          current_a: 1
+          phase: "x=1"
+        narration: "j = 1: dp[1] = dp[1] OR dp[1 - 1] = F OR T = T. Flip. The subset {1} reaches 1."
+      - step: 3
+        kind: row_done
+        state:
+          dp: [true, true, false, false, false, false, false, false, false, false, false, false]
+          phase: "after-x=1"
+        narration: "After x = 1: dp = [T, T, F, F, F, F, F, F, F, F, F, F]. Just one cell flipped. Subset sums reachable so far: {} -> 0, {1} -> 1."
+      - step: 4
+        kind: pick_item
+        payload: { item_index: 1, weight: 5, value: 1 }
+        state:
+          dp: [true, true, false, false, false, false, false, false, false, false, false, false]
+          current_coin: 5
+          current_a: 11
+          phase: "x=5"
+        narration: "Item 1: x = 5. Inner sweeps j = 11, 10, ..., 5. The right-to-left direction matters: when we read dp[j - 5], it must still hold the previous-row value (otherwise we'd be reusing item 5 inside one outer iteration — that would make this unbounded knapsack instead)."
+      - step: 5
+        kind: relax_cell
+        payload: { a: 6, from_a: 1, candidate: true, current: false, updated: true }
+        state:
+          dp: [true, true, false, false, false, false, true, false, false, false, false, false]
+          current_coin: 5
+          current_a: 6
+          phase: "x=5"
+        narration: "j = 6: dp[6] = dp[6] OR dp[6 - 5] = F OR dp[1] = T. Flip. The subset {1, 5} reaches 6."
+      - step: 6
+        kind: relax_cell
+        payload: { a: 5, from_a: 0, candidate: true, current: false, updated: true }
+        state:
+          dp: [true, true, false, false, false, true, true, false, false, false, false, false]
+          current_coin: 5
+          current_a: 5
+          phase: "x=5"
+        narration: "j = 5: dp[5] = dp[5] OR dp[5 - 5] = F OR dp[0] = T. Flip. The subset {5} reaches 5."
+      - step: 7
+        kind: row_done
+        state:
+          dp: [true, true, false, false, false, true, true, false, false, false, false, false]
+          phase: "after-x=5"
+        narration: "After x = 5: dp = [T, T, F, F, F, T, T, F, F, F, F, F]. Reachable subset sums: 0, 1, 5, 6 — exactly the four sums producible from any subset of {1, 5}."
+      - step: 8
+        kind: pick_item
+        payload: { item_index: 2, weight: 11, value: 1 }
+        state:
+          dp: [true, true, false, false, false, true, true, false, false, false, false, false]
+          current_coin: 11
+          current_a: 11
+          phase: "x=11"
+        narration: "Item 2: x = 11. Inner sweeps j = 11 only (j must be >= x). One cell to consider."
+      - step: 9
+        kind: relax_cell
+        payload: { a: 11, from_a: 0, candidate: true, current: false, updated: true }
+        state:
+          dp: [true, true, false, false, false, true, true, false, false, false, false, true]
+          current_coin: 11
+          current_a: 11
+          phase: "x=11"
+        narration: "j = 11: dp[11] = dp[11] OR dp[11 - 11] = F OR dp[0] = T. Flip. The subset {11} reaches 11. dp[target] is now T — the answer is True."
+      - step: 10
+        kind: row_done
+        state:
+          dp: [true, true, false, false, false, true, true, false, false, false, false, true]
+          phase: "early-exit"
+        narration: "Early exit fires: dp[target] is True; return True without processing item 3 (the second 5). After x = 11: dp = [T, T, F, F, F, T, T, F, F, F, F, T]."
+      - step: 11
+        kind: row_done
+        state:
+          dp: [true, true, false, false, false, true, true, false, false, false, false, true]
+          phase: "answer"
+          result: true
+        narration: "Answer: True. nums = [1, 5, 11, 5] partitions into [11] and [1, 5, 5] — both sum to 11. The DP found the partition without enumerating subsets; one bit of bookkeeping per (item, capacity) state."
+      - step: 12
+        kind: row_done
+        state:
+          dp: [true, true, false, false, false, true, true, false, false, false, false, true]
+          phase: "compare-direction"
+          result: true
+        narration: "Try the same code with the inner loop sweeping LEFT-TO-RIGHT instead. On nums = [3], target = 6 (a no-partition input), the left-to-right pass reads dp[j - 3] AFTER it was already overwritten in this same pass — so dp[6] would flip via dp[3] (just written), effectively packing item 3 twice. That's unbounded knapsack, not 0/1. The direction is the algorithm; not a stylistic choice."
+
+
+selector_default: panel-unbounded
+
+notes: |
+  Two panels rendering the SAME 1D dp[] array on a stacked layout — input
+  row (item / coin) on top, dp[0..W] grid below, an arrow showing the
+  direction of the inner sweep (left-to-right for unbounded, right-to-left
+  for 0/1). The direction-of-iteration flip is the only meaningful
+  difference between 9.4 and 9.5; the widget is built to make that flip
+  the headline visual.
+
+  Status note: panel-unbounded is complete (keyframes generated by
+  instrumenting the verified Python reference + §4 of
+  05-knapsack-unbounded.md, deterministic re-run). panel-01 is scaffolded
+  empty pending 9.4's chapter author.

@@ -1,0 +1,143 @@
+# Matrix rotation — layered 4-cycle on an n x n square matrix.
+# Animates LC 48 Rotate Image as concentric 4-cell cycles peeled from
+# the outer ring inward. The 4-fold rotational symmetry is what makes
+# the in-place permutation visible; transpose-then-reverse is the
+# alternative (and the easier identity to memorize), but it animates
+# as two unrelated full-matrix passes that hide the rotation.
+
+id: w-03-matrix-rotation
+title: "Matrix rotation (layered 4-cycle)"
+type: single-panel
+level: 1
+modes: [preset, randomize, edit]
+
+caps:
+  matrix_size: { min: 1, max: 5 }     # n=4 default; n=5 keeps step buffer <= 25
+  values: { min: -99, max: 999 }      # display only; algorithm is value-agnostic
+
+commands:
+  - name: layerStart
+    payload: { layer: "integer", first: "integer", last: "integer" }
+    description: "Begin a layer (concentric ring). Highlights the layer's perimeter."
+  - name: rotateCycle
+    payload: { layer: "integer", offset: "integer", cycle: "array of 4 [i,j] pairs" }
+    description: "Animate one 4-cell cycle: save tl into tmp, tl<-bl, bl<-br, br<-tr, tr<-tmp."
+  - name: complete
+    payload: {}
+    description: "Final state; matrix matches input rotated 90 degrees clockwise."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-03-matrix-rotation-fallback.svg
+  keyframes_used: [0, 3, 6, 7]
+
+panels:
+  default:
+    chapter: "1.7"
+    label: "90 degrees clockwise (layered 4-cycle)"
+    canonical_input: |
+      matrix = [[ 1,  2,  3,  4],
+                [ 5,  6,  7,  8],
+                [ 9, 10, 11, 12],
+                [13, 14, 15, 16]]
+      n = 4
+    presets:
+      - id: canonical
+        label: "Canonical 4x4 (chapter example)"
+        input:
+          matrix: [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]]
+      - id: small-3x3
+        label: "Smallest non-trivial (3x3)"
+        input:
+          matrix: [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+      - id: single-cell
+        label: "Edge case: 1x1 (no-op)"
+        input:
+          matrix: [[42]]
+      - id: two-by-two
+        label: "Edge case: 2x2 (one 4-cycle)"
+        input:
+          matrix: [[1, 2], [3, 4]]
+    n_steps: 8
+    # Trace generated for canonical 4x4 input. Outer ring: 3 cycles
+    # (corners, then two mid-edge cycles). Inner ring: 1 cycle on the
+    # central 2x2. Final answer: [[13,9,5,1],[14,10,6,2],[15,11,7,3],[16,12,8,4]].
+    keyframes:
+      - step: 0
+        kind: init
+        state:
+          matrix: [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]]
+          current_cycle: null
+        narration: "Matrix before rotation. Layers will be processed outermost first."
+      - step: 1
+        kind: layerStart
+        payload: { layer: 0, first: 0, last: 3 }
+        state:
+          matrix: [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]]
+          current_cycle: null
+        narration: "Begin layer 0 (outer ring): three 4-cell cycles between rows 0 and 3."
+      - step: 2
+        kind: rotateCycle
+        payload:
+          layer: 0
+          offset: 0
+          cycle: [[0, 0], [0, 3], [3, 3], [3, 0]]
+        state:
+          matrix: [[13, 2, 3, 1], [5, 6, 7, 8], [9, 10, 11, 12], [16, 14, 15, 4]]
+          current_cycle: [[0, 0], [0, 3], [3, 3], [3, 0]]
+        narration: "Corners cycle: 1 to top-right, 13 to top-left, 16 to bottom-left, 4 to bottom-right."
+      - step: 3
+        kind: rotateCycle
+        payload:
+          layer: 0
+          offset: 1
+          cycle: [[0, 1], [1, 3], [3, 2], [2, 0]]
+        state:
+          matrix: [[13, 9, 3, 1], [5, 6, 7, 2], [15, 10, 11, 12], [16, 14, 8, 4]]
+          current_cycle: [[0, 1], [1, 3], [3, 2], [2, 0]]
+        narration: "First mid-edge cycle on the outer ring."
+      - step: 4
+        kind: rotateCycle
+        payload:
+          layer: 0
+          offset: 2
+          cycle: [[0, 2], [2, 3], [3, 1], [1, 0]]
+        state:
+          matrix: [[13, 9, 5, 1], [14, 6, 7, 2], [15, 10, 11, 3], [16, 12, 8, 4]]
+          current_cycle: [[0, 2], [2, 3], [3, 1], [1, 0]]
+        narration: "Second mid-edge cycle on the outer ring; outer ring now in final position."
+      - step: 5
+        kind: layerStart
+        payload: { layer: 1, first: 1, last: 2 }
+        state:
+          matrix: [[13, 9, 5, 1], [14, 6, 7, 2], [15, 10, 11, 3], [16, 12, 8, 4]]
+          current_cycle: null
+        narration: "Begin layer 1 (inner ring): one 4-cell cycle on the central 2x2."
+      - step: 6
+        kind: rotateCycle
+        payload:
+          layer: 1
+          offset: 1
+          cycle: [[1, 1], [1, 2], [2, 2], [2, 1]]
+        state:
+          matrix: [[13, 9, 5, 1], [14, 10, 6, 2], [15, 11, 7, 3], [16, 12, 8, 4]]
+          current_cycle: [[1, 1], [1, 2], [2, 2], [2, 1]]
+        narration: "Central 4-cycle; inner ring now in final position."
+      - step: 7
+        kind: complete
+        state:
+          matrix: [[13, 9, 5, 1], [14, 10, 6, 2], [15, 11, 7, 3], [16, 12, 8, 4]]
+          current_cycle: null
+          result: rotated
+        narration: "Rotation complete; matrix equals input rotated 90 degrees clockwise."
+
+notes: |
+  Animates LC 48 Rotate Image. The chapter pairs this widget with a static
+  Mermaid trace of transpose-then-reverse on a 3x3 matrix; the two
+  decompositions are mathematically equivalent (both perform the
+  permutation (i, j) -> (j, n-1-i)) but teach different things. The
+  layered 4-cycle exposes the permutation cycles of the rotation; the
+  transpose-then-reverse identity is easier to memorize and prove.
+  Step count is exactly 8 for n=4 (1 init + 2 layer-starts + 4 cycles +
+  1 complete). For n=5 the trace extends to ~14 steps (2 layers, 4 + 2
+  cycles); n=5 is the cap, keeping every preset under the 25-step ceiling.

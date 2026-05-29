@@ -1,0 +1,439 @@
+# Huffman encoding
+# Single-panel chapter widget. Animates four phases: heap fills with leaves,
+# extract-2-merge loop runs n-1 times, root surfaces, codeword-walk emits a
+# bitstring per leaf. Reuses the heap-sift PQ panel module from w-18 / w-29.
+
+id: w-39-huffman-encoding
+title: "Huffman encoding (heap + tree assembly + codeword walk)"
+type: single-panel
+level: 1
+modes: [preset, randomize, edit]
+
+caps:
+  leaf_count: { min: 2, max: 12 }
+  weight: { min: 1, max: 9999 }
+  trace_length: { max: 1000 }
+
+commands:
+  - name: leafEnqueue
+    payload: { char: 'string', weight: 'integer' }
+    description: "Phase 1 init: insert one leaf (char, weight) into the min-heap."
+  - name: extractMin
+    payload: { extracted: 'tuple<id, weight>', slot: 'enum<first|second>' }
+    description: "Pop the heap root; first or second of the merge pair."
+  - name: mergeAndPush
+    payload: { internalId: 'string', weight: 'integer', left: 'id', right: 'id' }
+    description: "Create a new internal node with summed weight; push back into heap."
+  - name: extractRoot
+    payload: { rootId: 'string', rootWeight: 'integer' }
+    description: "Phase 3: the last heap entry is the Huffman tree root."
+  - name: descendLeft0
+    payload: { fromId: 'string' }
+    description: "Phase 4 codeword walk: append '0' and recurse left."
+  - name: descendRight1
+    payload: { fromId: 'string' }
+    description: "Phase 4 codeword walk: append '1' and recurse right."
+  - name: leafCodeword
+    payload: { char: 'string', code: 'string' }
+    description: "Emit the accumulated bitstring as the leaf's codeword."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-39-huffman-encoding-fallback.svg
+  keyframes_used: [5, 14, 21, 37]
+
+panels:
+  default:
+    chapter: "10.3"
+    label: "Huffman encoding on the CLRS canonical input (a..f)"
+    canonical_input: |
+      freqs = { a: 5, b: 9, c: 12, d: 13, e: 16, f: 45 }
+      (CLRS 4th ed. §16.3 Fig 16.4, page 432)
+    presets:
+      - id: clrs_canonical
+        label: "CLRS Fig 16.4 (a:5 b:9 c:12 d:13 e:16 f:45)"
+        input:
+          freqs: { a: 5, b: 9, c: 12, d: 13, e: 16, f: 45 }
+      - id: all_equal
+        label: "All-equal weights (balanced fixed-length code)"
+        input:
+          freqs: { a: 1, b: 1, c: 1, d: 1 }
+      - id: power_of_two
+        label: "Power-of-two weights (skewed Fibonacci-like tree)"
+        input:
+          freqs: { a: 1, b: 2, c: 4, d: 8, e: 16 }
+      - id: single_symbol
+        label: "Single-symbol degenerate (n=1; codeword forced to length 1)"
+        input:
+          freqs: { a: 7 }
+    n_steps: 38
+    expected_total_weighted_path_length: 224
+    expected_codeword_lengths: { f: 1, c: 3, d: 3, e: 3, a: 4, b: 4 }
+    expected_codewords_one_canonical:
+      f: "0"
+      c: "100"
+      d: "101"
+      e: "111"
+      a: "1100"
+      b: "1101"
+    keyframes:
+      # ── Phase 1: init (heap fills with 6 leaves, sorted by weight) ──────────
+      - step_id: 0
+        action: leafEnqueue
+        highlights: ["heap-cell-a"]
+        state_snapshot:
+          phase: init
+          heap: [["a", 5]]
+        narration: "init: enqueue a (weight 5)."
+      - step_id: 1
+        action: leafEnqueue
+        highlights: ["heap-cell-b"]
+        state_snapshot:
+          phase: init
+          heap: [["a", 5], ["b", 9]]
+        narration: "enqueue b (weight 9)."
+      - step_id: 2
+        action: leafEnqueue
+        highlights: ["heap-cell-c"]
+        state_snapshot:
+          phase: init
+          heap: [["a", 5], ["b", 9], ["c", 12]]
+        narration: "enqueue c (weight 12)."
+      - step_id: 3
+        action: leafEnqueue
+        highlights: ["heap-cell-d"]
+        state_snapshot:
+          phase: init
+          heap: [["a", 5], ["b", 9], ["c", 12], ["d", 13]]
+        narration: "enqueue d (weight 13)."
+      - step_id: 4
+        action: leafEnqueue
+        highlights: ["heap-cell-e"]
+        state_snapshot:
+          phase: init
+          heap: [["a", 5], ["b", 9], ["c", 12], ["d", 13], ["e", 16]]
+        narration: "enqueue e (weight 16)."
+      - step_id: 5
+        action: leafEnqueue
+        highlights: ["heap-cell-f"]
+        state_snapshot:
+          phase: init
+          heap: [["a", 5], ["b", 9], ["c", 12], ["d", 13], ["e", 16], ["f", 45]]
+        narration: "enqueue f (weight 45). Heap holds all 6 leaves; merging begins."
+      # ── Phase 2: extract-2-merge (5 merges; 3 events each = 15 steps) ───────
+      # Merge 1: a(5) + b(9) -> #6(14)
+      - step_id: 6
+        action: extractMin
+        highlights: ["heap-cell-a"]
+        state_snapshot:
+          phase: extract-2-merge
+          merge: 1
+          extracted: ["a", 5]
+          slot: first
+          heap: [["b", 9], ["c", 12], ["d", 13], ["e", 16], ["f", 45]]
+        narration: "merge 1: extract-min #1 → a (5)."
+      - step_id: 7
+        action: extractMin
+        highlights: ["heap-cell-b"]
+        state_snapshot:
+          phase: extract-2-merge
+          merge: 1
+          extracted: ["b", 9]
+          slot: second
+          heap: [["c", 12], ["d", 13], ["e", 16], ["f", 45]]
+        narration: "extract-min #2 → b (9)."
+      - step_id: 8
+        action: mergeAndPush
+        highlights: ["tree-node-6"]
+        state_snapshot:
+          phase: extract-2-merge
+          merge: 1
+          internalId: "#6"
+          weight: 14
+          left: "a"
+          right: "b"
+          heap: [["c", 12], ["d", 13], "#6=14", ["e", 16], ["f", 45]]
+        narration: "merge: #6 = a + b (weight 14); push back into heap."
+      # Merge 2: c(12) + d(13) -> #7(25)
+      - step_id: 9
+        action: extractMin
+        highlights: ["heap-cell-c"]
+        state_snapshot:
+          phase: extract-2-merge
+          merge: 2
+          extracted: ["c", 12]
+          slot: first
+          heap: [["d", 13], "#6=14", ["e", 16], ["f", 45]]
+        narration: "merge 2: extract-min #1 → c (12)."
+      - step_id: 10
+        action: extractMin
+        highlights: ["heap-cell-d"]
+        state_snapshot:
+          phase: extract-2-merge
+          merge: 2
+          extracted: ["d", 13]
+          slot: second
+          heap: ["#6=14", ["e", 16], ["f", 45]]
+        narration: "extract-min #2 → d (13)."
+      - step_id: 11
+        action: mergeAndPush
+        highlights: ["tree-node-7"]
+        state_snapshot:
+          phase: extract-2-merge
+          merge: 2
+          internalId: "#7"
+          weight: 25
+          left: "c"
+          right: "d"
+          heap: ["#6=14", ["e", 16], "#7=25", ["f", 45]]
+        narration: "merge: #7 = c + d (weight 25); push back."
+      # Merge 3: #6(14) + e(16) -> #8(30)
+      - step_id: 12
+        action: extractMin
+        highlights: ["heap-cell-6"]
+        state_snapshot:
+          phase: extract-2-merge
+          merge: 3
+          extracted: ["#6", 14]
+          slot: first
+          heap: [["e", 16], "#7=25", ["f", 45]]
+        narration: "merge 3: extract-min #1 → #6 (14)."
+      - step_id: 13
+        action: extractMin
+        highlights: ["heap-cell-e"]
+        state_snapshot:
+          phase: extract-2-merge
+          merge: 3
+          extracted: ["e", 16]
+          slot: second
+          heap: ["#7=25", ["f", 45]]
+        narration: "extract-min #2 → e (16)."
+      - step_id: 14
+        action: mergeAndPush
+        highlights: ["tree-node-8"]
+        state_snapshot:
+          phase: extract-2-merge
+          merge: 3
+          internalId: "#8"
+          weight: 30
+          left: "#6"
+          right: "e"
+          heap: ["#7=25", "#8=30", ["f", 45]]
+        narration: "merge: #8 = #6 + e (weight 30); push back."
+      # Merge 4: #7(25) + #8(30) -> #9(55)
+      - step_id: 15
+        action: extractMin
+        highlights: ["heap-cell-7"]
+        state_snapshot:
+          phase: extract-2-merge
+          merge: 4
+          extracted: ["#7", 25]
+          slot: first
+          heap: ["#8=30", ["f", 45]]
+        narration: "merge 4: extract-min #1 → #7 (25)."
+      - step_id: 16
+        action: extractMin
+        highlights: ["heap-cell-8"]
+        state_snapshot:
+          phase: extract-2-merge
+          merge: 4
+          extracted: ["#8", 30]
+          slot: second
+          heap: [["f", 45]]
+        narration: "extract-min #2 → #8 (30)."
+      - step_id: 17
+        action: mergeAndPush
+        highlights: ["tree-node-9"]
+        state_snapshot:
+          phase: extract-2-merge
+          merge: 4
+          internalId: "#9"
+          weight: 55
+          left: "#7"
+          right: "#8"
+          heap: [["f", 45], "#9=55"]
+        narration: "merge: #9 = #7 + #8 (weight 55); push back."
+      # Merge 5: f(45) + #9(55) -> #10(100) ← the root
+      - step_id: 18
+        action: extractMin
+        highlights: ["heap-cell-f"]
+        state_snapshot:
+          phase: extract-2-merge
+          merge: 5
+          extracted: ["f", 45]
+          slot: first
+          heap: ["#9=55"]
+        narration: "merge 5: extract-min #1 → f (45)."
+      - step_id: 19
+        action: extractMin
+        highlights: ["heap-cell-9"]
+        state_snapshot:
+          phase: extract-2-merge
+          merge: 5
+          extracted: ["#9", 55]
+          slot: second
+          heap: []
+        narration: "extract-min #2 → #9 (55)."
+      - step_id: 20
+        action: mergeAndPush
+        highlights: ["tree-node-10"]
+        state_snapshot:
+          phase: extract-2-merge
+          merge: 5
+          internalId: "#10"
+          weight: 100
+          left: "f"
+          right: "#9"
+          heap: ["#10=100"]
+        narration: "merge: #10 = f + #9 (weight 100). Heap size = 1; tree complete."
+      # ── Phase 3: tree-built ─────────────────────────────────────────────────
+      - step_id: 21
+        action: extractRoot
+        highlights: ["tree-node-10"]
+        state_snapshot:
+          phase: tree-built
+          rootId: "#10"
+          rootWeight: 100
+        narration: "tree built. Root #10 surfaces; weight equals total frequency (100)."
+      # ── Phase 4: codeword-walk (DFS pre-order; left=0, right=1) ────────────
+      - step_id: 22
+        action: descendLeft0
+        highlights: ["edge-10-f"]
+        state_snapshot:
+          phase: codeword-walk
+          path: "0"
+          fromId: "#10"
+        narration: "descend left from #10; path = '0'."
+      - step_id: 23
+        action: leafCodeword
+        highlights: ["tree-node-f", "code-row-f"]
+        state_snapshot:
+          phase: codeword-walk
+          char: "f"
+          code: "0"
+        narration: "leaf f → codeword '0'. (1 bit; matches expected length.)"
+      - step_id: 24
+        action: descendRight1
+        highlights: ["edge-10-9"]
+        state_snapshot:
+          phase: codeword-walk
+          path: "1"
+          fromId: "#10"
+        narration: "descend right from #10; path = '1'."
+      - step_id: 25
+        action: descendLeft0
+        highlights: ["edge-9-7"]
+        state_snapshot:
+          phase: codeword-walk
+          path: "10"
+          fromId: "#9"
+        narration: "descend left from #9; path = '10'."
+      - step_id: 26
+        action: descendLeft0
+        highlights: ["edge-7-c"]
+        state_snapshot:
+          phase: codeword-walk
+          path: "100"
+          fromId: "#7"
+        narration: "descend left from #7; path = '100'."
+      - step_id: 27
+        action: leafCodeword
+        highlights: ["tree-node-c", "code-row-c"]
+        state_snapshot:
+          phase: codeword-walk
+          char: "c"
+          code: "100"
+        narration: "leaf c → codeword '100' (3 bits)."
+      - step_id: 28
+        action: descendRight1
+        highlights: ["edge-7-d"]
+        state_snapshot:
+          phase: codeword-walk
+          path: "101"
+          fromId: "#7"
+        narration: "descend right from #7; path = '101'."
+      - step_id: 29
+        action: leafCodeword
+        highlights: ["tree-node-d", "code-row-d"]
+        state_snapshot:
+          phase: codeword-walk
+          char: "d"
+          code: "101"
+        narration: "leaf d → codeword '101' (3 bits)."
+      - step_id: 30
+        action: descendRight1
+        highlights: ["edge-9-8"]
+        state_snapshot:
+          phase: codeword-walk
+          path: "11"
+          fromId: "#9"
+        narration: "descend right from #9; path = '11'."
+      - step_id: 31
+        action: descendLeft0
+        highlights: ["edge-8-6"]
+        state_snapshot:
+          phase: codeword-walk
+          path: "110"
+          fromId: "#8"
+        narration: "descend left from #8; path = '110'."
+      - step_id: 32
+        action: descendLeft0
+        highlights: ["edge-6-a"]
+        state_snapshot:
+          phase: codeword-walk
+          path: "1100"
+          fromId: "#6"
+        narration: "descend left from #6; path = '1100'."
+      - step_id: 33
+        action: leafCodeword
+        highlights: ["tree-node-a", "code-row-a"]
+        state_snapshot:
+          phase: codeword-walk
+          char: "a"
+          code: "1100"
+        narration: "leaf a → codeword '1100' (4 bits, the deepest)."
+      - step_id: 34
+        action: descendRight1
+        highlights: ["edge-6-b"]
+        state_snapshot:
+          phase: codeword-walk
+          path: "1101"
+          fromId: "#6"
+        narration: "descend right from #6; path = '1101'."
+      - step_id: 35
+        action: leafCodeword
+        highlights: ["tree-node-b", "code-row-b"]
+        state_snapshot:
+          phase: codeword-walk
+          char: "b"
+          code: "1101"
+        narration: "leaf b → codeword '1101' (4 bits)."
+      - step_id: 36
+        action: descendRight1
+        highlights: ["edge-8-e"]
+        state_snapshot:
+          phase: codeword-walk
+          path: "111"
+          fromId: "#8"
+        narration: "descend right from #8; path = '111'."
+      - step_id: 37
+        action: leafCodeword
+        highlights: ["tree-node-e", "code-row-e"]
+        state_snapshot:
+          phase: codeword-walk
+          char: "e"
+          code: "111"
+        narration: "leaf e → codeword '111' (3 bits). All leaves assigned. Total weighted path length = 5·4 + 9·4 + 12·3 + 13·3 + 16·3 + 45·1 = 224 bits."
+
+notes: |
+  38-step trace transcribed verbatim step buffer; replay-
+  verified deterministic against the §2.2 Python reference on 2026-05-20
+  . Reuses the heap-sift PQ panel
+  module developed for w-18 (heap operations) and w-29 (Dijkstra), per
+  widget-architecture.md Appendix A item 9. The visual reveal lands at step
+  20: when the heap collapses to a single entry of total weight 100, the
+  reader sees that the iteration count and the heap size are bound by the
+  same invariant. Codewords {f:'0', c:'100', d:'101', e:'111', a:'1100',
+  b:'1101'} are one valid Huffman code for these frequencies; sibling labels
+  could be swapped without changing optimality (the codeword *length*
+  multiset {1, 3, 3, 3, 4, 4} is canonical; the bit assignments are not).

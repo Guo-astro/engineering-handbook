@@ -1,0 +1,233 @@
+# Sliding window expansion (fixed + variable)
+# Dual-panel shared widget — chapters 3.2 and 3.3 each render one panel.
+
+id: w-09-sliding-window-expansion
+title: "Sliding window (fixed + variable size)"
+type: dual-panel-shared
+level: 1
+modes: [preset, randomize, edit]
+
+caps:
+  array_length: { min: 4, max: 24 }
+  values: { min: -99, max: 99 }
+  window_k: { min: 1, max: "array_length" }   # fixed mode only
+
+commands:
+  - name: expand
+    payload: { newRight: 'integer' }
+    description: "Move r one cell right; update window-state panel below."
+  - name: shrink
+    payload: { newLeft: 'integer' }
+    description: "Move l one cell right; update window-state panel below."
+  - name: windowState
+    payload: { sum: 'integer', count: 'integer', valid: 'boolean' }
+    description: "Refresh the running-stat panel under the array."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-09-sliding-window-expansion-fallback.svg
+  keyframes_used: [0, "n_steps/4", "n_steps/2", "n_steps-1"]
+  # Override: the canonical "valid -> invalid" boundary is forced as a keyframe.
+
+panels:
+  panel-a:
+    chapter: "3.2"
+    label: "Sliding window (fixed size)"
+    canonical_input: |
+      nums = [2, 1, 5, 1, 3, 2, 1, 4]
+      k = 3
+    presets:
+      - id: max_avg_subarray
+        label: "Maximum average subarray (LC 643)"
+        input: { nums: [1, 12, -5, -6, 50, 3], k: 4 }
+    n_steps: 13
+    keyframes:
+      - step: 0
+        kind: init
+        state: { l: null, r: null, window_sum: 0, max_sum: null }
+        narration: "Initial state. Input nums = [2, 1, 5, 1, 3, 2, 1, 4], k = 3. The window has not been built; sum and max are unset."
+      - step: 1
+        kind: build
+        payload: { entering: 2, index: 0 }
+        state: { l: 0, r: 0, window_sum: 2, max_sum: null }
+        narration: "Build phase. Add nums[0] = 2 to the window. Window covers index 0; sum = 2."
+      - step: 2
+        kind: build
+        payload: { entering: 1, index: 1 }
+        state: { l: 0, r: 1, window_sum: 3, max_sum: null }
+        narration: "Build phase. Add nums[1] = 1. Window covers indices 0..1; sum = 3."
+      - step: 3
+        kind: build
+        payload: { entering: 5, index: 2 }
+        state: { l: 0, r: 2, window_sum: 8, max_sum: null }
+        narration: "Build phase. Add nums[2] = 5. Window now spans the first k = 3 indices; sum = 8."
+      - step: 4
+        kind: observeBuilt
+        state: { l: 0, r: 2, window_sum: 8, max_sum: 8 }
+        narration: "First window built. Record max_sum = 8 (avg ≈ 2.67). Slide phase begins."
+      - step: 5
+        kind: slide
+        payload: { leaving: { value: 2, index: 0 }, entering: { value: 1, index: 3 } }
+        state: { l: 1, r: 3, window_sum: 7, max_sum: 8 }
+        narration: "Slide. Drop nums[0] = 2; add nums[3] = 1. Window covers indices 1..3; sum = 7."
+      - step: 6
+        kind: observeSlid
+        state: { l: 1, r: 3, window_sum: 7, max_sum: 8 }
+        narration: "sum 7 < max_sum 8. No update; max_sum stays at 8."
+      - step: 7
+        kind: slide
+        payload: { leaving: { value: 1, index: 1 }, entering: { value: 3, index: 4 } }
+        state: { l: 2, r: 4, window_sum: 9, max_sum: 8 }
+        narration: "Slide. Drop nums[1] = 1; add nums[4] = 3. Window covers indices 2..4; sum = 9."
+      - step: 8
+        kind: observeSlid
+        state: { l: 2, r: 4, window_sum: 9, max_sum: 9 }
+        narration: "sum 9 > max_sum 8. Update max_sum = 9 (avg = 3.0). This is the answer."
+      - step: 9
+        kind: slide
+        payload: { leaving: { value: 5, index: 2 }, entering: { value: 2, index: 5 } }
+        state: { l: 3, r: 5, window_sum: 6, max_sum: 9 }
+        narration: "Slide. Drop nums[2] = 5; add nums[5] = 2. Window covers indices 3..5; sum = 6. 6 < 9; max stays."
+      - step: 10
+        kind: slide
+        payload: { leaving: { value: 1, index: 3 }, entering: { value: 1, index: 6 } }
+        state: { l: 4, r: 6, window_sum: 6, max_sum: 9 }
+        narration: "Slide. Drop nums[3] = 1; add nums[6] = 1. Window covers indices 4..6; sum = 6. 6 < 9; max stays."
+      - step: 11
+        kind: slide
+        payload: { leaving: { value: 3, index: 4 }, entering: { value: 4, index: 7 } }
+        state: { l: 5, r: 7, window_sum: 7, max_sum: 9 }
+        narration: "Slide. Drop nums[4] = 3; add nums[7] = 4. Window covers indices 5..7; sum = 7. 7 < 9; max stays."
+      - step: 12
+        kind: done
+        state: { l: 5, r: 7, window_sum: 7, max_sum: 9, result: 3.0 }
+        narration: "End of array. Return max_sum / k = 9 / 3 = 3.0."
+
+  panel-b:
+    chapter: "3.3"
+    label: "Sliding window (variable size)"
+    canonical_input: |
+      s = "pwwkew"
+      predicate = "all chars distinct"
+    presets:
+      - id: longest_no_repeat
+        label: "Longest substring without repeating chars (LC 3)"
+        input: { s: "pwwkew" }
+      - id: min_window
+        label: "Minimum window substring (LC 76)"
+        input: { s: "ADOBECODEBANC", t: "ABC" }
+      - id: at_most_k_distinct
+        label: "Longest substring at most k distinct (LC 340)"
+        input: { s: "aabbccd", k: 2 }
+    n_steps: 23
+    keyframes:
+      - step: 0
+        kind: init
+        state: { l: 0, r: -1, counts: {}, best: 0 }
+        narration: "Initial state. s = \"pwwkew\". Window is empty; l = 0, r = -1, counts = {}, best = 0."
+      - step: 1
+        kind: expand
+        payload: { entering: 'p', index: 0 }
+        state: { l: 0, r: 0, counts: { p: 1 }, best: 0 }
+        narration: "Expand. r = 0. counts['p'] = 1."
+      - step: 2
+        kind: check
+        state: { l: 0, r: 0, counts: { p: 1 }, valid: true, best: 0 }
+        narration: "Check predicate. counts['p'] = 1; window has no duplicate."
+      - step: 3
+        kind: record
+        state: { l: 0, r: 0, counts: { p: 1 }, best: 1 }
+        narration: "Record. window length 1; best = 1."
+      - step: 4
+        kind: expand
+        payload: { entering: 'w', index: 1 }
+        state: { l: 0, r: 1, counts: { p: 1, w: 1 }, best: 1 }
+        narration: "Expand. r = 1. counts['w'] = 1."
+      - step: 5
+        kind: check
+        state: { l: 0, r: 1, counts: { p: 1, w: 1 }, valid: true, best: 1 }
+        narration: "Check predicate. All counts <= 1; window valid."
+      - step: 6
+        kind: record
+        state: { l: 0, r: 1, counts: { p: 1, w: 1 }, best: 2 }
+        narration: "Record. window length 2; best = 2."
+      - step: 7
+        kind: expand
+        payload: { entering: 'w', index: 2 }
+        state: { l: 0, r: 2, counts: { p: 1, w: 2 }, best: 2 }
+        narration: "Expand. r = 2. counts['w'] = 2 — predicate violated."
+      - step: 8
+        kind: check
+        state: { l: 0, r: 2, counts: { p: 1, w: 2 }, valid: false, best: 2 }
+        narration: "Check predicate. counts['w'] = 2 > 1; window invalid. Shrink phase begins."
+      - step: 9
+        kind: shrink
+        payload: { leaving: 'p', index: 0 }
+        state: { l: 1, r: 2, counts: { p: 0, w: 2 }, best: 2 }
+        narration: "Shrink. Drop s[0] = 'p'. counts['p'] = 0; counts['w'] still 2; keep shrinking."
+      - step: 10
+        kind: shrink
+        payload: { leaving: 'w', index: 1 }
+        state: { l: 2, r: 2, counts: { p: 0, w: 1 }, best: 2 }
+        narration: "Shrink. Drop s[1] = 'w'. counts['w'] = 1; predicate restored."
+      - step: 11
+        kind: record
+        state: { l: 2, r: 2, counts: { p: 0, w: 1 }, best: 2 }
+        narration: "Record. window length 1; best stays at 2."
+      - step: 12
+        kind: expand
+        payload: { entering: 'k', index: 3 }
+        state: { l: 2, r: 3, counts: { p: 0, w: 1, k: 1 }, best: 2 }
+        narration: "Expand. r = 3. counts['k'] = 1."
+      - step: 13
+        kind: check
+        state: { l: 2, r: 3, counts: { p: 0, w: 1, k: 1 }, valid: true, best: 2 }
+        narration: "Check predicate. All counts <= 1; window valid."
+      - step: 14
+        kind: record
+        state: { l: 2, r: 3, counts: { p: 0, w: 1, k: 1 }, best: 2 }
+        narration: "Record. window length 2; best stays at 2."
+      - step: 15
+        kind: expand
+        payload: { entering: 'e', index: 4 }
+        state: { l: 2, r: 4, counts: { p: 0, w: 1, k: 1, e: 1 }, best: 2 }
+        narration: "Expand. r = 4. counts['e'] = 1."
+      - step: 16
+        kind: check
+        state: { l: 2, r: 4, counts: { p: 0, w: 1, k: 1, e: 1 }, valid: true, best: 2 }
+        narration: "Check predicate. All counts <= 1; window valid."
+      - step: 17
+        kind: record
+        state: { l: 2, r: 4, counts: { p: 0, w: 1, k: 1, e: 1 }, best: 3 }
+        narration: "Record. window length 3 (\"wke\"); best = 3. New optimum."
+      - step: 18
+        kind: expand
+        payload: { entering: 'w', index: 5 }
+        state: { l: 2, r: 5, counts: { p: 0, w: 2, k: 1, e: 1 }, best: 3 }
+        narration: "Expand. r = 5. counts['w'] = 2 — predicate violated."
+      - step: 19
+        kind: check
+        state: { l: 2, r: 5, counts: { p: 0, w: 2, k: 1, e: 1 }, valid: false, best: 3 }
+        narration: "Check predicate. counts['w'] = 2 > 1; shrink phase begins."
+      - step: 20
+        kind: shrink
+        payload: { leaving: 'w', index: 2 }
+        state: { l: 3, r: 5, counts: { p: 0, w: 1, k: 1, e: 1 }, best: 3 }
+        narration: "Shrink. Drop s[2] = 'w'. counts['w'] = 1; predicate restored."
+      - step: 21
+        kind: record
+        state: { l: 3, r: 5, counts: { p: 0, w: 1, k: 1, e: 1 }, best: 3 }
+        narration: "Record. window length 3 (\"kew\"); best stays at 3."
+      - step: 22
+        kind: done
+        state: { l: 3, r: 5, counts: { p: 0, w: 1, k: 1, e: 1 }, best: 3, result: 3 }
+        narration: "End of array. Return best = 3."
+
+selector_default: panel-a
+
+notes: |
+  3.2 teaches fixed-size; 3.3 teaches variable-size with shrink. Same widget
+  shell with a mode toggle in the config drawer.
+  Variable-size keyframe override: every validity transition (valid → invalid
+  or vice versa) is forced as a keyframe so the static fallback shows the
+  shrink moment.

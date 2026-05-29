@@ -1,0 +1,843 @@
+# DSA Handbook — Cross-chapter widget registry (thin index)
+#
+# Thin index of every widget id, the file that holds its runtime spec, and
+# the chapters that mount it. The full per-widget spec (panels, presets,
+# keyframes, narration, commands, caps) lives in
+# `content/dsa/widgets/<widget-id>.yml`.
+#
+# Schema:
+#   <widget-id>:
+#     spec: content/dsa/widgets/<widget-id>.yml      # required; file path
+#     type: <widget type>                            # one of: single-panel,
+#                                                    # dual-panel-shared,
+#                                                    # three-way-shared,
+#                                                    # four-way-shared,
+#                                                    # editorial-single-panel
+#     chapters: [<chapter-id>, ...]                  # PART.CHAPTER short form
+#                                                    # (e.g., "3.0" = Part 3,
+#                                                    # Chapter 0). CI maps to
+#                                                    # chapter slugs via
+#                                                    # _problem-registry.yml,
+#                                                    # where primary_chapter
+#                                                    # uses the full path form.
+#     status: <complete | scaffold | pending>
+#     # `complete`  — spec file has a full keyframe trace
+#     # `scaffold`  — spec file exists with empty keyframes
+#     # `pending`   — no spec file yet
+#     notes: <free-form>                             # optional
+#
+# Naming conventions:
+#   - Chapter widgets: `w-<NN>-<short-slug>` (e.g., w-08-two-pointers-3sum).
+#   - Editorial widgets: `e-LC<NNN>-<short-slug>` (e.g., e-LC001-two-sum).
+#     One per signature LC problem.
+#
+# Build CI's `make check:widget-registry` asserts:
+#   (a) every chapter's `widgets:` ids exist here
+#   (b) every entry's `spec:` file exists in `content/dsa/widgets/`
+#   (c) every chapter listed under `chapters:` actually mounts the widget
+#   (d) every editorial widget's LC ID has a matching entry in
+#       `_problem-registry.yml`
+#
+# Version: 1.0
+
+# =============================================================================
+# Part 0 — Foundations
+# =============================================================================
+
+w-01-recursion-call-stack:
+  spec: content/dsa/widgets/w-01-recursion-call-stack.yml
+  type: dual-panel-shared
+  chapters: ["0.2", "7.0"]
+  status: complete
+  notes: |
+    Panel-a (chapter 0.2) animates the push/base/pop trace of factorial(n)
+    so the call stack is visible as a physical artifact. Canonical input
+    n=4; 12 steps; cap n=8 (19 steps under the 25-step ceiling).
+    Panel-b (chapter 7.0) shows three call-stack panels side-by-side —
+    linear (fib_linear(3)), tree (fib_tree(3)), divide-and-conquer
+    (merge_sort([3,1,2])) — at the same instant. Combined panel-b trace
+    is 30 events (8 + 10 + 12) so the reader sees three shapes of
+    recursion as physically distinct stack behaviors.
+
+# =============================================================================
+# Part 1 — Linear Data Structures
+# =============================================================================
+
+w-02-hash-table:
+  spec: content/dsa/widgets/w-02-hash-table.yml
+  type: dual-panel-shared
+  chapters: ["1.3", "1.4"]
+  status: complete
+  notes: |
+    Panel-a (chapter 1.3, clean insert + lookup on a 4-bucket chained
+    table): 14 steps. Canonical input inserts apple/banana/cherry into
+    distinct buckets, exercises duplicate-key update on bucket 1, then
+    a hit lookup on banana and a miss lookup on grape that scans
+    bucket 3's single-entry chain.
+    Panel-b (chapter 1.4, collision storm + load-factor-triggered
+    resize): 12 steps. Canonical input inserts 5, 1, 9, 13, 17 — every
+    key hashes to bucket 1 at capacity 4 — drives the table past load
+    factor 0.75 on the fourth insert, doubles to capacity 8, and
+    rehashes so the chain at bucket 1 falls from length 4 back to
+    length 3. Combined: 26/50 steps under cap.
+
+w-03-matrix-rotation:
+  spec: content/dsa/widgets/w-03-matrix-rotation.yml
+  type: single-panel
+  chapters: ["1.7"]
+  status: complete
+  notes: |
+    Animates LC 48 Rotate Image as concentric layered 4-cycles.
+    Canonical 4x4 input [[1..4],[5..8],[9..12],[13..16]]; 8-step trace
+    (1 init + 2 layer-starts + 4 rotateCycle + 1 complete). Cap n=5
+    keeps every preset under the 25-step ceiling. The chapter prose
+    pairs the widget (layered 4-cycle, animation-friendly) with a
+    static Mermaid trace of transpose-then-reverse on a 3x3 (the
+    easier identity to memorize); both decompositions perform the
+    same permutation (i, j) -> (j, n-1-i).
+
+# =============================================================================
+# Part 2 — Search & Sort
+# =============================================================================
+
+w-04-binary-search:
+  spec: content/dsa/widgets/w-04-binary-search.yml
+  type: dual-panel-shared
+  chapters: ["2.1", "2.2"]
+  status: complete
+  notes: |
+    Panel-a (chapter 2.1, exact-match): 8 steps on the absent-target
+    preset. Panel-b (chapter 2.2, rotated-array branch on Template A):
+    11 steps on nums=[4,5,6,7,0,1,2], target=0; both rotated-branch
+    outcomes exercised. Combined 19/50 steps under cap.
+
+w-05-sorting-visualizer:
+  spec: content/dsa/widgets/w-05-sorting-visualizer.yml
+  type: dual-panel-shared
+  chapters: ["2.3", "2.4"]
+  status: complete
+  notes: |
+    Panel-a (chapter 2.3, merge sort top-down): 24 steps on
+    [5,2,4,7,1,3,2,6]. Expands the top-level merge to per-comparison
+    rows so the duplicate-2 stability decision at step 16 is visible.
+    Panel-b (chapter 2.4, quicksort + median-of-three Lomuto): 22
+    steps on the same input. Three full levels of recursion, duplicate
+    2s collide at depth 2 to show the not-stable-by-design behavior.
+    Combined 46/60 under cap.
+
+w-06-quicksort-partition:
+  spec: content/dsa/widgets/w-06-quicksort-partition.yml
+  type: single-panel
+  chapters: ["2.4"]
+  status: complete
+  notes: |
+    Level 2 zoom-in on a single Lomuto partition pass. Where w-05
+    panel-b shows the recursion tree at speed (one step per partition),
+    this widget freezes on one partition and animates the i/j sweep
+    cell-by-cell so the loop invariant arr[lo..i] <= pivot <
+    arr[i+1..j-1] is visible at every step. Three pedagogical-trap
+    presets surface Lomuto's Theta(n^2) failure modes (all-equal,
+    pivot-is-min, pivot-is-max). Canonical input
+    arr = [5, 2, 4, 1, 3, 6], pivot = 6, 16 steps under the 30-step cap.
+
+w-07-quickselect:
+  spec: content/dsa/widgets/w-07-quickselect.yml
+  type: single-panel
+  chapters: ["2.7"]
+  status: complete
+  notes: |
+    Algorithm-level (Level 1) view of quickselect: pivot pick,
+    partition, pivot place, recurse-decide, answer. Where w-06 zooms
+    in on a single Lomuto pass (Level 2 i/j sweep), this widget shows
+    the across-recursion behavior — one side per level is the entire
+    reason expected linear holds. Canonical input
+    nums = [3, 2, 1, 5, 6, 4], k = 2; 14 steps under the 50-step cap.
+    Pivot rule frozen to deterministic pivot=lo for trace
+    reproducibility; production code randomises (chapter prose states
+    the difference). Three pedagogical-trap presets: all-equal (Lomuto
+    Theta(n^2) failure), duplicates (index-conversion exercise), k-th
+    smallest (extreme target).
+
+# =============================================================================
+# Part 3 — Pointers, Window, Prefix
+# =============================================================================
+
+w-08-two-pointers-3sum:
+  spec: content/dsa/widgets/w-08-two-pointers-3sum.yml
+  type: single-panel
+  chapters: ["3.0"]
+  status: complete
+  notes: |
+    Distinct from editorial widget e-LC015-3sum (LC 15 specifically).
+    Canonical input nums = [-2, -1, 1, 4, 7, 12, 15], target = 6,
+    9 steps.
+
+w-09-sliding-window-expansion:
+  spec: content/dsa/widgets/w-09-sliding-window-expansion.yml
+  type: dual-panel-shared
+  chapters: ["3.2", "3.3"]
+  status: complete
+  notes: |
+    3.2 = fixed size; 3.3 = variable size. selector_default = panel-a
+    (3.2). Panel-a: canonical input nums = [2, 1, 5, 1, 3, 2, 1, 4],
+    k = 3; 13 steps. Panel-b: canonical input s = "pwwkew", predicate
+    = all chars distinct; 23 steps animating the SHRINK-LOOP form so
+    the per-char shrink work is visible — the editorial widget
+    e-LC003-longest-substring then shows the last-index-jump on the
+    same input as the optimization payoff.
+
+w-10-prefix-sum-cumulative:
+  spec: content/dsa/widgets/w-10-prefix-sum-cumulative.yml
+  type: single-panel
+  chapters: ["3.4"]
+  status: complete
+  notes: |
+    Array row component reused inside w-35. Canonical input
+    nums = [3, -1, 4, 1, 5, -9, 2, 6], query = [2, 5]; 16 steps
+    animating the 9-cell prefix build (sentinel plus 8 cumulate writes)
+    plus one query that exercises the prefix[r+1] minus prefix[l]
+    subtraction.
+
+w-35-prefix-sum-hash-combo:
+  spec: content/dsa/widgets/w-35-prefix-sum-hash-combo.yml
+  type: single-panel
+  chapters: ["3.5"]
+  status: complete
+  notes: |
+    Reuses w-10's array row + w-02's hash row. Canonical input
+    nums = [1, 1, 1], k = 2; 19 steps animating the LC 560 algorithm
+    and explicitly demonstrating WHY the seeded {0: 1} entry is
+    load-bearing (step 9 hit consumes the seed; without it, answer
+    would stay at 0 instead of reaching the correct 2).
+
+# =============================================================================
+# Part 4 — Stack & Queue Patterns
+# =============================================================================
+
+w-11-monotonic-stack:
+  spec: content/dsa/widgets/w-11-monotonic-stack.yml
+  type: single-panel
+  chapters: ["4.0"]
+  status: complete
+  notes: |
+    Chapter widget for 4.0 monotonic-stack. Animates LC 739 Daily
+    Temperatures on the canonical 8-day input
+    [73, 74, 75, 71, 69, 72, 76, 73]; 24 steps under the 30-step cap.
+    The dramatic moment is step 19 where index 2 (value 75) resolves
+    after waiting four days — the visual payoff that justifies storing
+    indices rather than values. LC 84's sentinel-pop variant gets a
+    separate editorial widget (e-LC084-largest-rect) at the Appendix C
+    editorial; not yet scaffolded.
+
+w-12-amortized-queue-via-stacks:
+  spec: content/dsa/widgets/w-12-amortized-queue-via-stacks.yml
+  type: single-panel
+  chapters: ["4.4"]
+  status: complete
+  notes: |
+    Chapter widget for 4.4 queue-from-stacks. Animates LC 232 on the
+    canonical problem-page input push(1), push(2), peek, pop, empty;
+    6-step trace under the 30-step cap. The pedagogically critical
+    moment is step 3, where peek triggers the transfer and the
+    deposited credits cash out: inbox [1, 2] drains into outbox [2, 1],
+    revealing the FIFO front (1) at the top of outbox. The credit-
+    balance badge alongside each stack frame makes Tarjan's amortized
+    accounting visible alongside the operational state. Two stress
+    presets cover the alternating-push/pop worst case (transfer fires
+    every pop) and the many-pushes-one-pop case (single n-element
+    transfer pre-paid by accumulated credits).
+
+# =============================================================================
+# Part 5 — Linked Lists (pending)
+# =============================================================================
+# Part 5 — Linked Lists (pending)
+# =============================================================================
+
+w-13-linked-list-pointer-rewiring:
+  spec: content/dsa/widgets/w-13-linked-list-pointer-rewiring.yml
+  type: three-way-shared
+  chapters: ["5.0", "5.1", "5.2"]
+  status: scaffold
+  notes: |
+    Cross-chapter widget for the Part 5 ladder: panel-a (5.0,
+    sentinel-driven design + the four canonical pointer rewires under
+    the LC 707 operation sequence), panel-b (5.1, full-list iterative
+    reversal; 23-step trace shipped 2026-05-24), panel-c (5.2,
+    K-at-a-time group reversal; 25-step trace on canonical input
+    head=[1,2,3,4,5] k=2, shipped 2026-05-24). Panels b and c are
+    complete; panel-a is the remaining stub. Status flips to
+    `complete` once panel-a lands.
+
+w-14-floyd-cycle:
+  spec: content/dsa/widgets/w-14-floyd-cycle.yml
+  type: single-panel
+  chapters: ["5.3"]
+  status: complete
+  notes: |
+    Animates Floyd's tortoise-and-hare on the LC 142 canonical input
+    [1, 3, 2, 0, -4] with pos=2 (a=2, L=3, b=1). 7-step trace covers
+    init → Phase 1 advance ×2 → Phase 1 meet (cycle confirmed) →
+    Phase 2 reset → Phase 2 advance → Phase 2 meet (cycle entry).
+    Trace generated by instrumenting the verified Python reference in
+    ; deterministic re-runs yield byte-identical output
+    . Distinct from any future editorial widget
+    e-LC142-* — this is the chapter widget.
+
+w-15-lru-cache:
+  spec: content/dsa/widgets/w-15-lru-cache.yml
+  type: dual-panel-shared
+  chapters: ["5.5", "13.0"]
+  status: complete
+  notes: |
+    Dual-panel-shared. Panel `default` (chapter 5.5) animates LC 146 on
+    the canonical capacity=2 sequence — pointer-rewiring mechanics with
+    both hash map (key -> node-pointer) and doubly linked list views;
+    10 steps. Panel `design_framing` (chapter 13.0) animates LC 146 on
+    a capacity=3, 9-op sequence chosen to surface every public-API
+    outcome: hit, miss, evict, in-place update (no evict), post-evict
+    miss, repeat-evict, final miss. Same algorithm; different framing —
+    panel-default foregrounds pointer choreography, design_framing
+    foregrounds the API headline + capacity counter + eviction events.
+    9 + 10 = 19 steps total, well under both panels' 30-step caps.
+    Trace generated by instrumenting the verified Python reference in
+    ; deterministic re-runs match the §4 step buffer
+    byte-for-byte.
+
+# =============================================================================
+# Part 6 — Trees & Heaps (pending)
+# =============================================================================
+
+w-16-tree-traversal-animator:
+  spec: content/dsa/widgets/w-16-tree-traversal-animator.yml
+  type: dual-panel-shared
+  chapters: ["6.1", "6.3"]
+  status: pending
+  notes: |
+    Panel-a = recursive DFS (pre/in/post) with call-stack overlay
+    (chapter 6.1). Panel-b = iterative BFS level-order with queue
+    overlay (chapter 6.3). Same canonical tree across both panels lets
+    the reader compare the two control-flow shapes directly.
+
+w-18-heap-operations:
+  spec: content/dsa/widgets/w-18-heap-operations.yml
+  type: single-panel
+  chapters: ["6.4"]
+  status: complete
+  notes: |
+    Chapter 6.4 mechanics widget. Animates sift-up after push(10) and
+    sift-down after pop_max() on a 7-element max-heap [9, 7, 8, 3, 6, 2, 5].
+    16 steps; canonical input copied byte-for-byte.
+    Both sift-up and sift-down walk exactly one root-to-leaf path so the
+    O(log n) cost is visible as path length. The push-then-pop sequence
+    returns the heap to its starting shape, making the round-trip clean.
+
+w-20-trie:
+  spec: content/dsa/widgets/w-20-trie.yml
+  type: dual-panel-shared
+  chapters: ["6.8", "13.4"]
+  status: complete
+  notes: |
+    Panel `default` (chapter 6.8 Tries): three inserts (car, cat, card) into
+    a 26-way trie, then a prefix walk on "ca". 27 steps; trace transcribed
+     (6.8 batch). Panel `panel-b` (chapter 13.4 Trie
+    autocomplete): SAME trie shape with each node's top-k frequency cache
+    visible; inputs ("car", 30), ("cat", 20), ("card", 10) seed the cache,
+    then topk("ca", 2) reads n_ca.top[:2] directly to return ["car", "cat"].
+    30 steps; trace transcribed of the 13.4 batch and
+    verified against the §2.2 Python AutocompleteTrie reference. The
+    dual-panel layout makes the 6.8 -> 13.4 contrast literal: same trie,
+    two lenses (binary is_end vs cached top-k). Reduced-motion fallback
+    on the default panel uses keyframes [0, 7, 14, 23, 26]; on panel-b
+    uses [0, 8, 16, 26, 29].
+
+w-21-segment-tree:
+  spec: content/dsa/widgets/w-21-segment-tree.yml
+  type: single-panel
+  chapters: ["6.10"]
+  status: complete
+  notes: |
+    Level 2 white-box chapter widget for 6.10. DSH-16 Hard-algorithm
+    widget per widget-decision-rule.md §4 (alongside AVL, Dijkstra,
+    KMP). Animates build/update/query on the canonical 8-element
+    array [1, 3, 5, 7, 9, 11, 13, 15] with operations build,
+    update(3, 6), sumRange(2, 5) -> 31. 48-step trace
+    (30 build + 9 update + 9 query) under the 60-step cap. Multi-
+    panel layout: implicit binary tree on top (Panel A), linear
+    array of 8 cells with active [tl, tr] shaded on bottom (Panel B),
+    status line with plain-English narration (Panel C, aria-live).
+    Reduced-motion fallback uses keyframes [0, 29, 38, 47]:
+    init / build complete / post-update / query answered. Trace
+    transcribed verbatim (verified deterministic
+    via step_buffer.py replay against the §2.2 Python reference;
+     confirms byte-identical re-runs).
+
+# =============================================================================
+# Part 7 — Recursion & Backtracking
+# =============================================================================
+
+w-22-backtracking-tree:
+  spec: content/dsa/widgets/w-22-backtracking-tree.yml
+  type: dual-panel-shared
+  chapters: ["7.1", "7.2"]
+  status: scaffold
+  notes: |
+    Multi-panel shared. Panel-template (7.1, complete): animates the
+    abstract choose/explore/unchoose template on LC 17 with digits =
+    "23". 19 steps; every choose has a matching unchoose at the same
+    depth, making the path-restoration invariant visible. Panel-
+    canonical (7.2, scaffolded): subsets/permutations/combinations on
+    [1, 2, 3]; keyframes pending — owned by 7.2's research/writer.
+    Status flips to `complete` once 7.2 fills panel-canonical.
+
+w-23-n-queens:
+  spec: content/dsa/widgets/w-23-n-queens.yml
+  type: single-panel
+  chapters: ["7.3"]
+  status: complete
+  notes: |
+    Chapter 7.3 mechanics widget. Animates the place / attack-mask /
+    dead-end / backtrack cycle on the canonical n=4 input. 40-step
+    trace (1 init + 16 place + 16 backtrack + 4 dead-end + 2 solution
+    + 1 done), transcribed verbatim step buffer
+    (deterministic; recursion enumerates columns 0..n-1 in fixed
+    order). Bitmask state (cols, diag1, diag2) is the chapter's
+    central teaching artifact — at step 3 the three masks union to
+    5 | 12 | 2 = 15 = 0b1111, blocking every column at row 2 and
+    triggering the first dead-end. Reduced-motion fallback uses
+    keyframes [0, 3, 14, 15, 23, 24]: empty / first dead-end /
+    first solution built / first solution emitted / second solution
+    built / second solution emitted. Three presets (n=4 canonical,
+    n=5 with more pruning, n=6 with the anomalous 4-solution count).
+
+# =============================================================================
+# Part 7 — Recursion & Backtracking
+# =============================================================================
+
+w-22-backtracking-tree:
+  spec: content/dsa/widgets/w-22-backtracking-tree.yml
+  type: three-way-shared
+  chapters: ["7.1", "7.2"]
+  status: scaffold
+  notes: |
+    Cross-chapter widget for Part 7 backtracking. Chapter 7.2 owns three
+    panels animating the choose-explore-unchoose chassis on three problems:
+    panel-subsets (LC 78, 22 steps on canonical [1, 2, 3]), panel-perms
+    (LC 46, 23 steps on [1, 2, 3]; steps 17.5 and 17.75 collapsed for
+    brevity to keep the trace under 25), panel-combos (LC 39, 18 steps on
+    candidates [2, 3, 6, 7] target 7, with explicit prune events for the
+    branch-and-bound cuts). selector_default = panel-subsets. Chapter 7.1
+    owns panel-template (LC 17 scaffold, keyframes empty pending 7.1's
+    chapter author). Status flips to `complete` when 7.1's panel ships.
+
+# =============================================================================
+# Part 8 — Graphs (pending)
+# =============================================================================
+
+w-26-graph-dfs:
+  spec: content/dsa/widgets/w-26-graph-dfs.yml
+  type: single-panel
+  chapters: ["8.2"]
+  status: complete
+  notes: |
+    Chapter 8.2 mechanics widget. Animates iterative DFS-from-boundary
+    on the canonical 5x5 grid. 20-step trace
+    (1 init + 1 seed + 14 visit/push events + 2 pop-skip + 2 sweep)
+    transcribed verbatim, replay-verified deterministic against the
+    §2.6 iterative Python reference on 2026-05-20. Two pedagogically
+    critical events: steps 16-17 are the pop-skip pair that show why
+    the visited-check is the O(V+E) guard, and step 19 lifts the two
+    surrounded cells (3,1) and (3,2) to 'X'. Reduced-motion fallback
+    uses keyframes [0, 1, 8, 18, 19]. Three presets: 5x5 canonical,
+    all-'O' 4x4 (no captures), single-surrounded 3x3.
+
+w-27-topological-sort-kahn:
+  spec: content/dsa/widgets/w-27-topological-sort-kahn.yml
+  type: dual-panel-shared
+  chapters: ["8.4", "8.5"]
+  status: pending
+  notes: |
+    Cross-validation widget: same DAG, two algorithms (Kahn's
+    BFS-with-indegrees in panel-a, DFS post-order reverse in panel-b).
+    Reader sees that both produce a valid topological order and where
+    they differ in exploration shape.
+
+w-29-dijkstra:
+  spec: content/dsa/widgets/w-29-dijkstra.yml
+  type: single-panel
+  chapters: ["8.9"]
+  status: complete
+  notes: |
+    Level-2 white-box widget for Dijkstra's shortest-path algorithm.
+    Three synchronized panels: priority queue (left), dist[] array (top),
+    graph (center, Wong palette). Canonical 6-vertex weighted DAG;
+    27-step trace generated from the verified §2.2 Python reference
+    . Two deterministic
+    stale-skip events at steps 18 and 25 surface the lazy-deletion
+    idiom — the chapter's signature implementation move. n=12 hard cap
+    keeps graph layout legible; trace stays well under the 1000-step
+    animation ceiling. Reduced-motion fallback uses keyframes
+    [0, 8, 18, 26].
+
+w-30-mst-kruskal-prim:
+  spec: content/dsa/widgets/w-30-mst-kruskal-prim.yml
+  type: dual-panel-shared
+  chapters: ["8.11", "8.12"]
+  status: complete
+  notes: |
+    Cross-validation widget: same weighted 7-vertex graph,
+    Kruskal (panel-kruskal, edge-sorted accept-on-no-cycle via union-find)
+    vs Prim (panel-prim, frontier min-heap). Both arrive at the same MST
+    (weight 31, six edges); the visual shows the two construction orders.
+    Panel-kruskal complete (23 steps; chapter 8.11 ratified 2026-05-25).
+    Panel-prim complete (30 steps; chapter 8.12 ratified 2026-05-25).
+    Synchronized mode advances both panels at the rate of edges absorbed;
+    the two flavors of "edge rejected" - Kruskal's union-find cycle
+    rejects vs Prim's stale-heap-entry skips - render as visually
+    distinct events on the same source edges (A-C 3, B-D 5, C-E 7,
+    E-F 9), surfacing the deeper twin between the two algorithms.
+
+w-37-bellman-ford:
+  spec: content/dsa/widgets/w-37-bellman-ford.yml
+  type: single-panel
+  chapters: ["8.10"]
+  status: complete
+  notes: |
+    Chapter 8.10 mechanics widget. Two presets: 5-node CLRS textbook graph
+    with no negative cycle (V-1 = 4 passes including 2 early-termination
+    no-op pass-end events that teach the converged-flag optimization), and
+    4-node graph with cycle 1->2->3->1 of weight -2 (V-th pass detects).
+    39 events total (19 + 20), transcribed verbatim step
+    buffer; replay-verified bit-for-bit against the §2.2 Python reference
+    on 2026-05-20. The single most important teaching moment is step 17 of
+    the canonical preset (vcheckClean) versus step 18 of the neg-cycle
+    preset (vcheckRelax): the V-th pass is the same code; the answer
+    diverges based on whether any edge still relaxes.
+
+# =============================================================================
+# Part 9 — Dynamic Programming (pending)
+# =============================================================================
+
+w-33-lis-patience:
+  spec: content/dsa/widgets/w-33-lis-patience.yml
+  type: single-panel
+  chapters: ["9.9"]
+  status: complete
+  notes: |
+    Chapter 9.9 mechanics widget. Animates the tails-array build on the
+    canonical LC 300 input nums = [10, 9, 2, 5, 3, 7, 101, 18]. 26-step
+    trace under the 50-step cap, transcribed verbatim
+    step buffer (deterministic; replay-verified bit-for-bit against the
+    §2.2 Python reference, ). Three pedagogically
+    critical moments: step 15 (the first replace that freezes a smaller
+    tail at length 2; primes the invariant), step 21 (length 4 reached
+    with tail 101), step 24 (the same-length-but-smaller-tail moment
+    where 101 is overwritten by 18 — the chapter's headline frame for
+    why the visible tails array is not the LIS subsequence). Three
+    presets: canonical n=8, all-equal n=7 (degenerate, LIS=1),
+    non-strict n=5 (bisect_right toggle, LIS=4). Reduced-motion fallback
+    uses keyframes [0, 12, 21, 25].
+
+w-31-dp-table-fill:
+  spec: content/dsa/widgets/w-31-dp-table-fill.yml
+  type: four-way-shared
+  chapters: ["9.0", "9.1", "9.6", "9.7"]
+  status: scaffold
+  notes: |
+    Four-way shared: panel-a recursion+memo Fib (9.0), panel-b
+    iterative Fib (9.1), panel-c LCS 2D fill (9.6), panel-d edit-
+    distance 2D with op labels (9.7).
+    Panel-d (9.7) is keyframe-complete: 25 steps on the canonical
+    "horse" -> "ros" = 3 input, transcribed verbatim from research
+    §4 step buffer (verified deterministic against the §2.2 Python
+    reference at part-9-dynamic-programming/07-edit-distance/lc-72/
+    sol.py; chapter 9.7 ratified 2026-05-25). Three presets:
+    horse/ros (canonical), intention/execution, kitten/sitting.
+    Per-cell op labels (match/replace/delete/insert) use the Wong
+    palette per style-guide.md; tie-break order diag > top > left
+    matches the four §2 reference implementations.
+    Panels b/c are scaffolded (n_steps: 0, keyframes: []) pending
+    9.1/9.6 chapter authors. Panel-a (9.0) is keyframe-complete:
+    24-step trace on canonical fib(6) = 8 input, transcribed verbatim
+     step buffer (deterministic; trace_buffer.py
+    replays produce byte-identical output; chapter 9.0 ratified
+    2026-05-25). Status flips to `complete` once all four panels
+    carry full traces.
+
+w-32-knapsack-fill:
+  spec: content/dsa/widgets/w-32-knapsack-fill.yml
+  type: dual-panel-shared
+  chapters: ["9.4", "9.5"]
+  status: scaffold
+  notes: |
+    Two panels rendering the same 1D dp[] array; the only difference is
+    the direction of the inner sweep. panel-01 (chapter 9.4, 0/1
+    knapsack) sweeps right-to-left so each item is used at most once;
+    panel-unbounded (chapter 9.5, unbounded knapsack) sweeps
+    left-to-right so the just-updated dp[a-c] feeds back into dp[a],
+    modeling reuse. selector_default = panel-unbounded.
+    panel-unbounded keyframes complete (13 steps on canonical input
+    coins=[1,2,5], amount=11, transcribed ); panel-01
+    keyframes empty pending 9.4's chapter author. Status flips from
+    `scaffold` to `complete` once 9.4 ships.
+
+w-34-bitmask-dp:
+  spec: content/dsa/widgets/w-34-bitmask-dp.yml
+  type: single-panel
+  chapters: ["9.14"]
+  status: complete
+  notes: |
+    Single-panel chapter widget for 9.14 Bitmask DP. Animates the
+    (node, mask) state shape on a 3-node line graph (graph =
+    [[1],[0,2],[1]]); 8-step BFS trace from node 0 reaches the
+    goal state (2, 0b111) at dist 2. Constructed from the verified
+    LC 847 reference at 9.14/lc-847/sol.py. had
+    animations: [] — the widget is a Phase-2 addition per the
+    chapter spec, which asks for a small-input mask-transition demo
+    even though research declined a Tier-1 widget at LC 847's
+    n = 12 production scale (trace would exceed buffer cap). The
+    n = 3 widget here is a teaching cut, not a full LC 847 trace.
+
+# =============================================================================
+# Part 10 — Greedy
+# =============================================================================
+
+w-36-interval-scheduling:
+  spec: content/dsa/widgets/w-36-interval-scheduling.yml
+  type: single-panel
+  chapters: ["10.1"]
+  status: complete
+  notes: |
+    Chapter 10.1 mechanics widget. Panel-non-overlap: 11-step trace on the
+    LC 435 canonical input [[1,2],[2,3],[3,4],[1,3]] showing sort-by-end +
+    drop-on-overlap; drop counter ends at 1. The pedagogically critical step
+    is 5, where [1,3] overlaps the kept [1,2] and is dropped — the exchange
+    argument rendered as a single visible event. A second preset
+    [[1,100],[2,3],[3,4]] surfaces the sort-by-start trap (greedy on
+    sort-by-start would drop both shorter intervals; sort-by-end keeps them
+    and drops [1,100]).
+    NOTE: previously dual-panel-shared with chapter 10.2 (panel-min-arrows
+    for LC 452). Cancelled when chapter 10.2 was redirected from
+    interval-points-arrows to activity-selection (task-scheduler family);
+    LC 452 stays cited inline in 10.1 prose without a dedicated panel since
+    the algorithm is identical to LC 435 with `n - removed` as the return
+    value. Chapter 10.2 ships Mermaid diagrams only.
+
+w-39-huffman-encoding:
+  spec: content/dsa/widgets/w-39-huffman-encoding.yml
+  type: single-panel
+  chapters: ["10.3"]
+  status: complete
+  notes: |
+    Chapter 10.3 mechanics widget. Animates four phases on the CLRS Fig 16.4
+    canonical input freqs={a:5, b:9, c:12, d:13, e:16, f:45}: init (6 leaf
+    enqueues), extract-2-merge (5 merges × 3 events = 15 steps), tree-built
+    (root #10 surfaces at weight 100), codeword-walk (DFS pre-order emits
+    one bitstring per leaf). 38-step trace under the 1000-step cap; trace
+    transcribed verbatim step buffer (replay-verified
+    bit-for-bit against the §2.2 Python reference on 2026-05-20). Reuses
+    the heap-sift PQ panel module from w-18 (heap operations) and w-29
+    (Dijkstra) per widget-architecture.md Appendix A item 9. Final codewords
+    {f:"0", c:"100", d:"101", e:"111", a:"1100", b:"1101"} are one valid
+    Huffman code for these frequencies; codeword *lengths* {1,3,3,3,4,4}
+    are canonical, bit assignments are not (siblings can be swapped without
+    changing optimality). Total weighted path length 224 bits matches CLRS
+    Fig 16.4. Three additional presets: all-equal weights (balanced fixed-
+    length code), power-of-two weights (skewed Fibonacci-like tree),
+    single-symbol degenerate (n=1 forces a dummy parent so codeword is "0"
+    not the empty string). Note: specified this widget id
+    as w-39 (w-37 was already claimed by Bellman-Ford in chapter 8.10).
+
+# =============================================================================
+# Part 12 — Strings & Pattern Matching
+# =============================================================================
+
+w-38-kmp:
+  spec: content/dsa/widgets/w-38-kmp.yml
+  type: single-panel
+  chapters: ["12.2"]
+  status: complete
+  notes: |
+    Chapter 12.2 mechanics widget. Animates KMP's two phases on the
+    canonical input P = "ABABCABAB" / T = "ABABDABACDABABCABAB" over
+    36 steps: 11 Phase-A steps building the failure function lps =
+    [0, 0, 1, 2, 0, 1, 2, 3, 4], then 25 Phase-B steps walking the
+    matching pass to the first match at T-index 10. The pedagogically
+    critical moments are step 4 (lps construction's first fallback
+    via length = lps[1] = 0, showing the j-1 indexing convention)
+    and step 16 (matching pass's first fallback via j = lps[3] = 2,
+    showing that on a mismatch i never moves backwards while j jumps
+    to the longest viable prefix). Trace transcribed verbatim from
+     step buffer; deterministic replay against the §2.2
+    Python reference produces byte-identical output (
+    Check 4). Reduced-motion fallback samples {0, 4, 10, 11, 22, 35}.
+    Note: specified id w-32-kmp-failure-function;
+    next-free-id rule lands at w-38 (w-32 was already claimed by
+    Knapsack in 9.5; w-37/w-39/w-40 by Bellman-Ford / Huffman /
+    Z-array in 8.10 / 10.3 / 12.3).
+
+w-40-z-array:
+  spec: content/dsa/widgets/w-40-z-array.yml
+  type: single-panel
+  chapters: ["12.3"]
+  status: complete
+  notes: |
+    Chapter 12.3 mechanics widget. Animates Z-array construction on the
+    canonical input s = "aabaabcaab" (length 10) over 19 steps, exercising
+    all three branches of the main loop: trivial init outside [l, r) at
+    steps 1/4/6/11/13, mirror-inside (z[i] = z[i-l] capped) at steps 9/10/16/17,
+    and window slides at steps 3/8/15. The pedagogically critical moment is
+    step 9, the first mirror reuse: z[4] is set to 1 with no character
+    comparisons because step 8's slide proved s[3:6] equals s[0:3]; that
+    inheritance is the entire amortized-linear argument made visible.
+    Trace transcribed verbatim step buffer; deterministic
+    replay against the §2.2 Python reference produces byte-identical output
+    . Reduced-motion fallback samples
+    {0, 3, 8, 9, 15, 18}. Three additional presets: "aaaa" (degenerate,
+    mirror-clip on every step after init), "aaabaaaab" (triggers the
+    mirror-clip-with-extension branch the canonical input omits), and
+    "ll#hello" (the pattern-matching reduction). Note:
+    specified the id as w-41-z-algorithm; the next-free-id rule lands at
+    w-40 because w-39 was claimed by Huffman encoding in 10.3.
+
+# =============================================================================
+# Editorial widgets — one per signature LC problem
+# =============================================================================
+# Editorial widgets — one per signature LC problem
+# =============================================================================
+
+e-LC001-two-sum:
+  spec: content/dsa/widgets/e-LC001-two-sum.yml
+  type: editorial-single-panel
+  chapters: ["1.3"]
+  status: complete
+  notes: "LC 1 (Two Sum); one-pass hash."
+
+e-LC003-longest-substring:
+  spec: content/dsa/widgets/e-LC003-longest-substring.yml
+  type: editorial-single-panel
+  chapters: ["3.3"]
+  status: complete
+  notes: |
+    Variable-window-with-last-index-jump on "pwwkew". 9-step trace
+    animating both the inside-window jump (r=2, w at index 1, l: 0->2)
+    and the inside-window jump again at r=5 (w at index 2, l: 2->3),
+    with step 7 explicitly demoing the now-stale last['p']=0 entry
+    that the `prev >= l` guard would skip. Distinct from w-09 panel-b
+    (same input, but panel-b animates the SHRINK-LOOP form — the
+    pairing teaches why the jump is the right answer).
+
+e-LC011-container:
+  spec: content/dsa/widgets/e-LC011-container.yml
+  type: editorial-single-panel
+  chapters: ["3.0"]
+  status: complete
+  notes: |
+    Two-pointer greedy shrink on LC 11. Canonical input
+    height = [1, 8, 6, 2, 5, 4, 8, 3, 7]; the optimal pair (area 49)
+    is found on step 2; remaining 6 steps confirm no later pair beats
+    it, teaching the case-analysis proof: every step that moves the
+    shorter pointer is provably non-improving for the abandoned pair.
+
+e-LC005-longest-palindrome:
+  spec: content/dsa/widgets/e-LC005-longest-palindrome.yml
+  type: editorial-single-panel
+  chapters: ["9.10"]
+  status: complete
+  notes: |
+    Expand-around-centers on LC 5. Walks all 2n-1 centers (odd and
+    even) on a small input, expanding outward while characters match.
+    Teaches why both center types must be tried and why the algorithm
+    runs in O(n²) time, O(1) extra space — the practical optimum
+    over the O(n²) DP table.
+
+e-LC015-3sum:
+  spec: content/dsa/widgets/e-LC015-3sum.yml
+  type: editorial-single-panel
+  chapters: ["3.0"]
+  status: complete
+  notes: |
+    Sort + fix-anchor + opposite-ends on LC 15. Distinct from chapter
+    widget w-08 (configurable demo). Canonical input
+    nums = [-1, 0, 1, 2, -1, -4]; 15-step trace covering sort, both
+    anchor hits, the anchor-duplicate-skip, and the early-exit at the
+    first positive anchor.
+
+
+# =============================================================================
+# Registry sync (post-ship verification pass) — entries for widgets whose
+# spec files exist on disk but were never indexed.
+# =============================================================================
+
+w-12-monotonic-deque:
+  spec: content/dsa/widgets/w-12-monotonic-deque.yml
+  type: single-panel
+  chapters: ['4.1']
+  status: complete
+  notes: |
+    Chapter widget for 4.1 monotonic-deque. Animates LC 239 Sliding
+    Window Maximum on the canonical input
+    [1, 3, -1, -3, 5, 3, 6, 7] with k=3.
+    The dramatic moment is the dominance-rule eviction at step 5
+    where value 5 sweeps the entire deque clean — visual payoff for
+    why "values strictly less than the new arrival never come back."
+
+w-17-morris-thread:
+  spec: content/dsa/widgets/w-17-morris-thread.yml
+  type: single-panel
+  chapters: ['6.2']
+  status: complete
+  notes: |
+    Chapter widget for 6.2 morris-traversal. Animates the threading
+    + un-threading of in-order traversal on a canonical 7-node tree;
+    the load-bearing moment is when a temporary right-pointer thread
+    is detected on the second visit and severed, restoring the tree
+    to its original shape with O(1) extra space.
+
+w-19-bst-rotations:
+  spec: content/dsa/widgets/w-19-bst-rotations.yml
+  type: dual-panel-shared
+  chapters: ['6.5', '6.6']
+  status: complete
+  notes: |
+    Panel-a = BST insert + delete on a 7-node BST (chapter 6.5).
+    Panel-b = AVL rotations LL/LR/RR/RL on the unbalanced state
+    that triggers each (chapter 6.6). Same node universe across
+    both panels so the reader sees how the BST's degenerate
+    insertion order becomes the AVL chapter's exact rotation
+    trigger.
+
+w-24-sudoku-grid:
+  spec: content/dsa/widgets/w-24-sudoku-grid.yml
+  type: single-panel
+  chapters: ['7.4']
+  status: complete
+  notes: |
+    Chapter widget for 7.4 sudoku-solver. Animates LC 37 backtracking
+    on a 9x9 grid with three constraint masks (row, column, 3x3 box)
+    visualized as bit overlays. Backtrack moments are highlighted to
+    show the forward-then-undo two-line discipline that defines the
+    family.
+
+w-25-graph-bfs:
+  spec: content/dsa/widgets/w-25-graph-bfs.yml
+  type: single-panel
+  chapters: ['8.1']
+  status: complete
+  notes: |
+    Chapter widget for 8.1 BFS. Animates the level-by-level expansion
+    of a canonical 8-vertex graph with the queue overlay so readers
+    can see the FIFO discipline producing the shortest-path tree
+    (unweighted) layer by layer; visit, enqueue, mark, expand are
+    distinct event kinds.
+
+w-28-union-find:
+  spec: content/dsa/widgets/w-28-union-find.yml
+  type: single-panel
+  chapters: ['8.8']
+  status: complete
+  notes: |
+    Chapter widget for 8.8 union-find. Animates path compression
+    and union-by-rank on a 10-vertex disjoint-set forest. The visual
+    payoff is the parent-pointer flattening on each find call; the
+    rank tags mark which tree wins each union and keep the height
+    bounded by O(log n) before path compression amortizes the cost.

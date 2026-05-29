@@ -1,0 +1,143 @@
+# Editorial widget — LC 15 3Sum
+# Editorial widgets animate ONE specific signature problem at fixed input.
+# Preset-only; no randomize, no edit.
+
+id: e-LC015-3sum
+title: "3Sum (LC 15) — sort + anchor + opposite-ends with duplicate-skip"
+type: editorial-single-panel
+level: 1
+modes: [preset]
+
+caps:
+  array_length: { fixed: 6 }       # exactly the canonical input length
+
+commands:
+  - name: sortArray
+    payload: { from: 'integerArray', to: 'integerArray' }
+    description: "Animate the initial sort step. Reorder cells with a single sweep."
+  - name: setAnchor
+    payload: { i: 'integer', value: 'integer', target: 'integer' }
+    description: "Place anchor i; show the inner-sweep target T = -nums[i]."
+  - name: setPointer
+    payload: { which: 'l | r', index: 'integer' }
+    description: "Move l or r within the inner sweep."
+  - name: compareSum
+    payload: { sum: 'integer', vs_target: 'integer', verdict: 'too_low | too_high | hit' }
+    description: "Show nums[l] + nums[r] vs target."
+  - name: emitTriplet
+    payload: { triplet: 'integerArray' }
+    description: "Append the triplet to the result panel; cells turn solid green."
+  - name: skipAnchorDup
+    payload: { i: 'integer', value: 'integer' }
+    description: "Gray out anchor i and skip the inner sweep entirely."
+  - name: skipPointerDup
+    payload: { which: 'l | r', value: 'integer' }
+    description: "After a hit, advance l or r past consecutive duplicates."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/e-LC015-3sum-fallback.svg
+  keyframes_used: [0, 1, 7, 14]   # init, after-sort, second-hit, terminate
+
+panels:
+  default:
+    chapter: "3.0"
+    primary_chapter: part-3-pointers-window-prefix/00-two-pointers-opposite
+    label: "3Sum — sort, anchor, two-pointer, skip duplicates"
+    canonical_input: |
+      nums = [-1, 0, 1, 2, -1, -4]
+    # Why this input: LC's standard example. After sort, two valid triplets
+    # exist: [-1,-1,2] and [-1,0,1]. The duplicate -1 in the array is the
+    # exact thing readers blow on the first pass — the widget makes the
+    # anchor-skip explicit on step 12 (i=2 grayed out).
+    presets: []
+    n_steps: 15
+    keyframes:
+      - step: 0
+        kind: init
+        state: { nums: [-1, 0, 1, 2, -1, -4], i: null, l: null, r: null, result: [] }
+        narration: "Input is unsorted. The algorithm requires a sorted array to make duplicate-skip and pointer-advance rules sound."
+      - step: 1
+        kind: sortArray
+        payload: { from: [-1, 0, 1, 2, -1, -4], to: [-4, -1, -1, 0, 1, 2] }
+        state: { nums: [-4, -1, -1, 0, 1, 2], i: null, l: null, r: null, result: [] }
+        narration: "Sort: [-4, -1, -1, 0, 1, 2]. The duplicate -1 at indices 1 and 2 is what the duplicate-skip rules will handle."
+      - step: 2
+        kind: setAnchor
+        payload: { i: 0, value: -4, target: 4 }
+        state: { nums: [-4, -1, -1, 0, 1, 2], i: 0, l: 1, r: 5, result: [] }
+        narration: "Anchor i=0 (value -4). Need a pair summing to +4 from the suffix. Set l=1, r=5."
+      - step: 3
+        kind: compareSum
+        payload: { sum: 1, vs_target: 4, verdict: too_low }
+        state: { nums: [-4, -1, -1, 0, 1, 2], i: 0, l: 1, r: 5, result: [] }
+        narration: "nums[l] + nums[r] = -1 + 2 = 1. Below 4. Three more left-advances will exhaust the suffix without a hit."
+      - step: 4
+        kind: setAnchor
+        payload: { i: 1, value: -1, target: 1 }
+        state: { nums: [-4, -1, -1, 0, 1, 2], i: 1, l: 2, r: 5, result: [] }
+        narration: "Anchor i=1 (value -1). Target is +1. Set l=2, r=5."
+      - step: 5
+        kind: compareSum
+        payload: { sum: 1, vs_target: 1, verdict: hit }
+        state: { nums: [-4, -1, -1, 0, 1, 2], i: 1, l: 2, r: 5, result: [] }
+        narration: "nums[l] + nums[r] = -1 + 2 = 1. Hit."
+      - step: 6
+        kind: emitTriplet
+        payload: { triplet: [-1, -1, 2] }
+        state: { nums: [-4, -1, -1, 0, 1, 2], i: 1, l: 2, r: 5, result: [[-1, -1, 2]] }
+        narration: "Record [-1, -1, 2]. Now advance both pointers and skip any duplicates on either side."
+      - step: 7
+        kind: setPointer
+        payload: { which: l, index: 3 }
+        state: { nums: [-4, -1, -1, 0, 1, 2], i: 1, l: 3, r: 4, result: [[-1, -1, 2]] }
+        narration: "Both pointers move inward by one. nums[3]=0 is not a duplicate of nums[2]=-1; nums[4]=1 is not a duplicate of nums[5]=2; no skip needed."
+      - step: 8
+        kind: compareSum
+        payload: { sum: 1, vs_target: 1, verdict: hit }
+        state: { nums: [-4, -1, -1, 0, 1, 2], i: 1, l: 3, r: 4, result: [[-1, -1, 2]] }
+        narration: "nums[l] + nums[r] = 0 + 1 = 1. Second hit."
+      - step: 9
+        kind: emitTriplet
+        payload: { triplet: [-1, 0, 1] }
+        state: { nums: [-4, -1, -1, 0, 1, 2], i: 1, l: 3, r: 4, result: [[-1, -1, 2], [-1, 0, 1]] }
+        narration: "Record [-1, 0, 1]. Advance both pointers; l=4, r=3, so l > r and the inner sweep exits."
+      - step: 10
+        kind: skipAnchorDup
+        payload: { i: 2, value: -1 }
+        state: { nums: [-4, -1, -1, 0, 1, 2], i: 2, l: null, r: null, result: [[-1, -1, 2], [-1, 0, 1]] }
+        narration: "Anchor i=2 has value -1, equal to nums[i-1]. The anchor-duplicate-skip line fires; skip the inner sweep entirely. Without this line, both triplets would be re-emitted."
+      - step: 11
+        kind: setAnchor
+        payload: { i: 3, value: 0, target: 0 }
+        state: { nums: [-4, -1, -1, 0, 1, 2], i: 3, l: 4, r: 5, result: [[-1, -1, 2], [-1, 0, 1]] }
+        narration: "Anchor i=3 (value 0). Target is 0. Set l=4, r=5."
+      - step: 12
+        kind: compareSum
+        payload: { sum: 3, vs_target: 0, verdict: too_high }
+        state: { nums: [-4, -1, -1, 0, 1, 2], i: 3, l: 4, r: 5, result: [[-1, -1, 2], [-1, 0, 1]] }
+        narration: "nums[l] + nums[r] = 1 + 2 = 3. Above target 0. Advance r; r becomes 4, l == r, inner exits."
+      - step: 13
+        kind: setAnchor
+        payload: { i: 4, value: 1, target: -1 }
+        state: { nums: [-4, -1, -1, 0, 1, 2], i: 4, l: null, r: null, result: [[-1, -1, 2], [-1, 0, 1]] }
+        narration: "Anchor i=4 (value 1). Outer loop ends here — the early-exit rule (nums[i] > 0 → break) fires because no positive anchor can sum to zero with two larger positives."
+      - step: 14
+        kind: terminate
+        state: { nums: [-4, -1, -1, 0, 1, 2], i: null, l: null, r: null, result: [[-1, -1, 2], [-1, 0, 1]] }
+        narration: "Algorithm complete. Final triplets: [[-1, -1, 2], [-1, 0, 1]]. Two hits, three duplicate-skip rules earning their place."
+
+lc_id: 15
+difficulty: medium
+algorithm: sort-anchor-opposite-ends
+
+notes: |
+  Animates LC 15 specifically. The sort step is shown explicitly because
+  forgetting to sort is one of the recurring pitfalls. The
+  duplicate-skip on the anchor (step 10) is the highest-leverage moment in
+  the trace — the bug it prevents is the most-asked beginner question on
+  Stack Overflow's LC 15 thread.
+
+  Distinct from chapter widget w-08-two-pointers-3sum, which is the
+  configurable two-pointer-on-sorted demo (a strictly simpler algorithm).
+  e-LC015 is preset-only and fixed to LC 15's standard test case.

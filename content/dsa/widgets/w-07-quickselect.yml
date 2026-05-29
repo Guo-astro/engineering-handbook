@@ -1,0 +1,182 @@
+# Quickselect (Lomuto partition + recurse-on-one-side) — chapter 2.7 dedicated widget
+# Level 1 single-panel widget. Where w-06 zooms in on a single Lomuto pass,
+# this widget shows the across-recursion behavior: pivot is picked, partition
+# runs (steps elided to one frame each), pivot lands at its sorted index, the
+# recurse-decision branches into one side. The teaching point: the algorithm
+# visits one side per level, which is why expected linear holds.
+#
+# Trace pivot rule: deterministic pivot=lo (NOT random). Production code
+# randomises; the widget freezes pivot to make the trace reproducible. Chapter
+# prose states this explicitly.
+
+id: w-07-quickselect
+title: "Quickselect: partition and recurse on one side"
+type: single-panel
+level: 1
+modes: [preset, randomize, edit]
+
+caps:
+  array_length: { min: 4, max: 12 }
+  values: { min: -99, max: 99 }
+  k: { min: 1 }                              # max-cross-field: <= len(nums)
+  step_buffer: 50
+
+commands:
+  - name: pickPivot
+    payload: { pivot_idx_pre: 'integer', pivot_idx_post: 'integer', pivot_value: 'integer', round: 'integer' }
+    description: "Move pivot to arr[hi] (move from pivot_idx_pre to pivot_idx_post=hi)."
+  - name: partitionStep
+    payload: { i: 'integer', store: 'integer', pivot_value: 'integer', verdict: 'less | ge', swap_with: 'integer | null' }
+    description: "Compare arr[i] to pivot; if arr[i] < pivot, swap into arr[store] and advance store; else skip."
+  - name: placePivot
+    payload: { pivot_idx: 'integer', pivot_value: 'integer' }
+    description: "Final swap: arr[store] with arr[hi]; pivot lands at arr[pivot_idx]."
+  - name: recurseDecide
+    payload: { decision: 'left | right | hit', pivot_idx: 'integer', target_idx: 'integer', new_lo: 'integer', new_hi: 'integer' }
+    description: "Compare pivot_idx to target_idx; advance lo (recurse right) or retreat hi (recurse left); if equal, finish."
+  - name: answer
+    payload: { answer_idx: 'integer', answer_val: 'integer' }
+    description: "Pivot index equals target index; return arr[pivot_idx]."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-07-quickselect-fallback.svg
+  keyframes_used: [0, 7, 8, 13]               # init, mid-partition, recurse-decide, answer
+
+panels:
+  default:
+    chapter: "2.7"
+    label: "Quickselect on [3, 2, 1, 5, 6, 4], k = 2"
+    canonical_input: |
+      nums = [3, 2, 1, 5, 6, 4]
+      k = 2
+      target_idx = len(nums) - k = 4
+      pivot_rule = lo (deterministic, for trace reproducibility)
+    presets:
+      - id: canonical
+        label: "Canonical (LC 215, k = 2; answer = 5)"
+        input: { nums: [3, 2, 1, 5, 6, 4], k: 2 }
+      - id: kth-smallest
+        label: "k-th smallest (k = 1; answer = 6 i.e. largest)"
+        input: { nums: [3, 2, 1, 5, 6, 4], k: 1 }
+      - id: duplicates
+        label: "Duplicates input (k = 4 of [3,2,3,1,2,4,5,5,6]; answer = 4)"
+        input: { nums: [3, 2, 3, 1, 2, 4, 5, 5, 6], k: 4 }
+      - id: all-equal
+        label: "All-equal trap (Lomuto's Theta(n^2) failure mode)"
+        input: { nums: [7, 7, 7, 7, 7], k: 3 }
+    n_steps: 14
+    keyframes:
+      - step: 0
+        kind: init
+        state: { arr: [3, 2, 1, 5, 6, 4], lo: 0, hi: 5, target_idx: 4 }
+        narration: "Find the 2nd-largest. The 2nd largest is the 4th smallest, so target_idx = len(nums) - k = 6 - 2 = 4. Track lo, hi, and target_idx as the algorithm narrows the range."
+
+      - step: 1
+        kind: pickPivot
+        payload: { pivot_idx_pre: 0, pivot_idx_post: 5, pivot_value: 3, round: 1 }
+        state: { arr: [4, 2, 1, 5, 6, 3], lo: 0, hi: 5, pivot_value: 3, round: 1 }
+        narration: "Round 1: pick pivot value 3 (from index 0). Move it to arr[hi]=arr[5]. Now arr = [4, 2, 1, 5, 6, 3] with pivot 3 at index 5."
+
+      - step: 2
+        kind: partitionStep
+        payload: { i: 0, store: 0, pivot_value: 3, verdict: ge, swap_with: null }
+        state: { arr: [4, 2, 1, 5, 6, 3], i: 0, store: 0, pivot_value: 3 }
+        narration: "Scan i=0: arr[0]=4 >= pivot 3. Skip; store stays at 0."
+
+      - step: 3
+        kind: partitionStep
+        payload: { i: 1, store: 1, pivot_value: 3, verdict: less, swap_with: 0 }
+        state: { arr: [2, 4, 1, 5, 6, 3], i: 1, store: 1, pivot_value: 3 }
+        narration: "Scan i=1: arr[1]=2 < 3. Swap arr[1] with arr[store]=arr[0], advance store to 1. arr = [2, 4, 1, 5, 6, 3]."
+
+      - step: 4
+        kind: partitionStep
+        payload: { i: 2, store: 2, pivot_value: 3, verdict: less, swap_with: 1 }
+        state: { arr: [2, 1, 4, 5, 6, 3], i: 2, store: 2, pivot_value: 3 }
+        narration: "Scan i=2: arr[2]=1 < 3. Swap arr[2] with arr[store]=arr[1], advance store to 2. arr = [2, 1, 4, 5, 6, 3]."
+
+      - step: 5
+        kind: partitionStep
+        payload: { i: 3, store: 2, pivot_value: 3, verdict: ge, swap_with: null }
+        state: { arr: [2, 1, 4, 5, 6, 3], i: 3, store: 2, pivot_value: 3 }
+        narration: "Scan i=3: arr[3]=5 >= 3. Skip."
+
+      - step: 6
+        kind: partitionStep
+        payload: { i: 4, store: 2, pivot_value: 3, verdict: ge, swap_with: null }
+        state: { arr: [2, 1, 4, 5, 6, 3], i: 4, store: 2, pivot_value: 3 }
+        narration: "Scan i=4: arr[4]=6 >= 3. Skip. End of partition scan."
+
+      - step: 7
+        kind: placePivot
+        payload: { pivot_idx: 2, pivot_value: 3 }
+        state: { arr: [2, 1, 3, 5, 6, 4], pivot_idx: 2, pivot_value: 3 }
+        narration: "Final swap: arr[store]=arr[2] with arr[hi]=arr[5]. Pivot 3 lands at index 2. arr = [2, 1, 3, 5, 6, 4]; left band [2, 1] all < 3; right band [5, 6, 4] all >= 3."
+
+      - step: 8
+        kind: recurseDecide
+        payload: { decision: right, pivot_idx: 2, target_idx: 4, new_lo: 3, new_hi: 5 }
+        state: { arr: [2, 1, 3, 5, 6, 4], lo: 3, hi: 5, target_idx: 4 }
+        narration: "pivot_idx=2 < target_idx=4: target lies strictly to the right. Advance lo to 3; the left band is never visited again."
+
+      - step: 9
+        kind: pickPivot
+        payload: { pivot_idx_pre: 3, pivot_idx_post: 5, pivot_value: 5, round: 2 }
+        state: { arr: [2, 1, 3, 4, 6, 5], lo: 3, hi: 5, pivot_value: 5, round: 2 }
+        narration: "Round 2: pick pivot value 5 (from index 3). Move it to arr[hi]=arr[5]. arr = [2, 1, 3, 4, 6, 5]."
+
+      - step: 10
+        kind: partitionStep
+        payload: { i: 3, store: 4, pivot_value: 5, verdict: less, swap_with: 3 }
+        state: { arr: [2, 1, 3, 4, 6, 5], i: 3, store: 4, pivot_value: 5 }
+        narration: "Scan i=3: arr[3]=4 < 5. Swap arr[3] with arr[store]=arr[3] (no-op), advance store to 4."
+
+      - step: 11
+        kind: partitionStep
+        payload: { i: 4, store: 4, pivot_value: 5, verdict: ge, swap_with: null }
+        state: { arr: [2, 1, 3, 4, 6, 5], i: 4, store: 4, pivot_value: 5 }
+        narration: "Scan i=4: arr[4]=6 >= 5. Skip. End of partition scan."
+
+      - step: 12
+        kind: placePivot
+        payload: { pivot_idx: 4, pivot_value: 5 }
+        state: { arr: [2, 1, 3, 4, 5, 6], pivot_idx: 4, pivot_value: 5 }
+        narration: "Final swap: arr[store]=arr[4] with arr[hi]=arr[5]. Pivot 5 lands at index 4. arr = [2, 1, 3, 4, 5, 6]."
+
+      - step: 13
+        kind: answer
+        payload: { answer_idx: 4, answer_val: 5 }
+        state: { arr: [2, 1, 3, 4, 5, 6], answer_idx: 4, answer_val: 5 }
+        narration: "pivot_idx=4 == target_idx=4. Return arr[4]=5. The 2nd-largest of [3, 2, 1, 5, 6, 4] is 5. Total partition work: 5 + 2 = 7 comparisons across 6 elements; full sort would have done about 16."
+
+notes: |
+  Why Level 1 rather than Level 2: the partition primitive itself already
+  has its own Level 2 zoom in w-06-quicksort-partition (chapter 2.4). This
+  widget reuses that primitive and adds the across-recursion behavior:
+  recurse-decide picks one side, the next round operates on a strictly
+  smaller range, target_idx never moves. Promoting BOTH the partition
+  primitive AND the recurse-on-one-side framing to Level 2 would
+  over-saturate the chapter; the chapter prose
+  cross-references w-06 for the i/j sweep detail and lets w-07 carry the
+  algorithm-level narrative.
+
+  Pivot rule is deterministic (pivot = arr[lo]) for trace reproducibility.
+  Production code MUST randomise to defeat adversarial inputs; chapter
+  prose states this explicitly so readers don't copy the deterministic
+  trace into their LC 215 submission.
+
+  The all-equal preset (canonical input [7, 7, 7, 7, 7], k = 3) is the
+  pedagogical trap: with strict `<` Lomuto, every comparison is `ge`, so
+  the partition collapses to "pivot lands at lo", recursion shrinks by 1
+  each step, and the algorithm degenerates to O(n^2) — the worst-case
+  failure mode that 3-way (Dutch national flag) partitioning fixes.
+
+  The duplicates preset (canonical [3, 2, 3, 1, 2, 4, 5, 5, 6], k = 4)
+  exercises the index-conversion arithmetic with non-trivial duplicates;
+  target_idx = 9 - 4 = 5; answer = 4 (the 4th-largest counting duplicates).
+
+  The k-th smallest preset (k = 1) exercises the extreme target_idx = 5,
+  showing the algorithm pivoting until the rightmost-element-in-place;
+  symmetric to the k = n case (target_idx = 0). Both extremes still hit
+  expected linear time.

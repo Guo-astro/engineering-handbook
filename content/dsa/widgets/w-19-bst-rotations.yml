@@ -1,0 +1,649 @@
+# BST operations + AVL rotations — three-way shared widget
+# Shared between chapter 6.5 (BST insert/search/delete) and chapter 6.6
+# (AVL self-balancing rotations). Authoritative spec at runtime.
+#
+# Status: scaffold (panel-avl keyframes complete;
+# panel-bst-ops keyframes pending until chapter 6.5 ships).
+
+id: w-19-bst-rotations
+title: "BST operations and AVL rotations"
+type: dual-panel-shared
+level: 2
+modes: [preset]
+
+caps:
+  tree_size: { min: 3, max: 9 }
+  values: { min: -99, max: 99 }
+  total_steps: { max: 30 }
+
+commands:
+  # BST commands (used by panel-bst-ops, chapter 6.5)
+  - name: bstSearch
+    payload: { key: 'integer', path: 'nodeId[]' }
+    description: "Walk the search path; highlight each visited node."
+  - name: bstInsert
+    payload: { key: 'integer', parentId: 'integer', side: "'left' | 'right'" }
+    description: "Land the new key as a leaf under parent on the chosen side."
+  - name: bstDelete
+    payload: { key: 'integer', strategy: "'leaf' | 'one_child' | 'two_children_successor'" }
+    description: "Delete the keyed node via the matching strategy; the two-child case animates the in-order-successor swap."
+  # AVL commands (used by panel-avl, chapter 6.6)
+  - name: setBalanceFactor
+    payload: { nodeId: 'integer', value: 'integer' }
+    description: "Render or update the BF badge above the node."
+  - name: rotateLeft
+    payload: { pivot: 'integer' }
+    description: "Single left rotation around pivot. Pivot's right child ascends; pivot demotes to left child of new root."
+  - name: rotateRight
+    payload: { pivot: 'integer' }
+    description: "Single right rotation around pivot. Pivot's left child ascends; pivot demotes to right child of new root."
+  - name: rotateLeftRight
+    payload: { pivot: 'integer' }
+    description: "Double rotation: rotateLeft on pivot's left child, then rotateRight on pivot."
+  - name: rotateRightLeft
+    payload: { pivot: 'integer' }
+    description: "Double rotation: rotateRight on pivot's right child, then rotateLeft on pivot."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-19-bst-rotations-fallback.svg
+  keyframes_used: [0, "n_steps/3", "2*n_steps/3", "n_steps-1"]
+
+panels:
+  panel-bst-ops:
+    chapter: "6.5"
+    label: "BST insert / search / delete (LC 700, 701, 450)"
+    canonical_input: |
+      ops = [insert(5), insert(3), insert(8), insert(1), insert(4),
+             search(4), delete(3), delete(5)]
+    presets:
+      - id: bst-canonical
+        label: "BST canonical (insert + search + delete-with-two-children)"
+        input:
+          ops:
+            - "insert(5)"
+            - "insert(3)"
+            - "insert(8)"
+            - "insert(1)"
+            - "insert(4)"
+            - "search(4)"
+            - "delete(3)"
+            - "delete(5)"
+      - id: pathological_sorted_insert
+        label: "Sorted insert 1..7 (degenerates to a linked list — motivates AVL)"
+        input:
+          ops:
+            - "insert(1)"
+            - "insert(2)"
+            - "insert(3)"
+            - "insert(4)"
+            - "insert(5)"
+            - "insert(6)"
+            - "insert(7)"
+    n_steps: 24
+    # Trace transcribed from the chapter prose at lines 142-143. Tree
+    # shape after each insert is taken from the §1 canonical mermaid
+    # diagram. Delete(5) is the Case 3 (two children) flagship: walk the
+    # right subtree's left spine, find successor 7, value-copy 7 into
+    # root, recursively delete the duplicate 7 by Case 2a (right child
+    # adopted). Final inorder [1, 3, 4, 7, 8, 9] preserves sorted-walk
+    # invariant.
+    keyframes:
+      - step: 0
+        kind: bstInsert
+        state:
+          phase: "build"
+          op: "insert(5)"
+          tree: { value: 5 }
+          inorder: [5]
+        narration: "Empty tree. insert(5) — the first key always lands as the root. The BST invariant holds vacuously."
+      - step: 1
+        kind: bstInsert
+        state:
+          phase: "build"
+          op: "insert(3)"
+          tree: { value: 5, left: { value: 3 } }
+          path: [5]
+          current: 3
+          inorder: [3, 5]
+        narration: "insert(3): walk from root. 3 < 5, go left. Left slot is null; land here. Inorder so far: [3, 5]."
+      - step: 2
+        kind: bstInsert
+        state:
+          phase: "build"
+          op: "insert(8)"
+          tree: { value: 5, left: { value: 3 }, right: { value: 8 } }
+          path: [5]
+          current: 8
+          inorder: [3, 5, 8]
+        narration: "insert(8): 8 > 5, go right. Null slot. Inorder: [3, 5, 8]."
+      - step: 3
+        kind: bstInsert
+        state:
+          phase: "build"
+          op: "insert(1)"
+          tree:
+            value: 5
+            left: { value: 3, left: { value: 1 } }
+            right: { value: 8 }
+          path: [5, 3]
+          current: 1
+          inorder: [1, 3, 5, 8]
+        narration: "insert(1): 1 < 5 (left), 1 < 3 (left), null. Land. Inorder: [1, 3, 5, 8]."
+      - step: 4
+        kind: bstInsert
+        state:
+          phase: "build"
+          op: "insert(4)"
+          tree:
+            value: 5
+            left: { value: 3, left: { value: 1 }, right: { value: 4 } }
+            right: { value: 8 }
+          path: [5, 3]
+          current: 4
+          inorder: [1, 3, 4, 5, 8]
+        narration: "insert(4): 4 < 5 (left), 4 > 3 (right), null. Land. Inorder: [1, 3, 4, 5, 8]."
+      - step: 5
+        kind: bstInsert
+        state:
+          phase: "build"
+          op: "insert(7)"
+          tree:
+            value: 5
+            left: { value: 3, left: { value: 1 }, right: { value: 4 } }
+            right: { value: 8, left: { value: 7 } }
+          path: [5, 8]
+          current: 7
+          inorder: [1, 3, 4, 5, 7, 8]
+        narration: "insert(7): 7 > 5 (right), 7 < 8 (left), null. Land. Inorder: [1, 3, 4, 5, 7, 8]."
+      - step: 6
+        kind: bstInsert
+        state:
+          phase: "build"
+          op: "insert(9)"
+          tree:
+            value: 5
+            left: { value: 3, left: { value: 1 }, right: { value: 4 } }
+            right: { value: 8, left: { value: 7 }, right: { value: 9 } }
+          path: [5, 8]
+          current: 9
+          inorder: [1, 3, 4, 5, 7, 8, 9]
+        narration: "insert(9): 9 > 5 (right), 9 > 8 (right), null. Land. Build complete; canonical tree assembled. Inorder: [1, 3, 4, 5, 7, 8, 9] — sorted, by Theorem 12.1."
+      - step: 7
+        kind: bstSearch
+        state:
+          phase: "search"
+          op: "search(4)"
+          tree:
+            value: 5
+            left: { value: 3, left: { value: 1 }, right: { value: 4 } }
+            right: { value: 8, left: { value: 7 }, right: { value: 9 } }
+          current: 5
+          path: []
+        narration: "search(4): start at root. cur = 5."
+      - step: 8
+        kind: bstSearch
+        state:
+          phase: "search"
+          op: "search(4)"
+          tree:
+            value: 5
+            left: { value: 3, left: { value: 1 }, right: { value: 4 } }
+            right: { value: 8, left: { value: 7 }, right: { value: 9 } }
+          current: 3
+          path: [5]
+        narration: "4 < 5; go left. cur = 3."
+      - step: 9
+        kind: bstSearch
+        state:
+          phase: "search"
+          op: "search(4)"
+          tree:
+            value: 5
+            left: { value: 3, left: { value: 1 }, right: { value: 4 } }
+            right: { value: 8, left: { value: 7 }, right: { value: 9 } }
+          current: 4
+          path: [5, 3]
+          result: 4
+        narration: "4 > 3; go right. cur = 4. Match! search(4) returns the node. O(h) = O(log n) on this balanced shape."
+      - step: 10
+        kind: bstDelete
+        state:
+          phase: "delete"
+          op: "delete(3)"
+          tree:
+            value: 5
+            left: { value: 3, left: { value: 1 }, right: { value: 4 } }
+            right: { value: 8, left: { value: 7 }, right: { value: 9 } }
+          current: 5
+          path: []
+        narration: "delete(3): walk down. cur = 5."
+      - step: 11
+        kind: bstDelete
+        state:
+          phase: "delete"
+          op: "delete(3)"
+          tree:
+            value: 5
+            left: { value: 3, left: { value: 1 }, right: { value: 4 } }
+            right: { value: 8, left: { value: 7 }, right: { value: 9 } }
+          victim: 3
+          path: [5]
+          case: "two_children"
+        narration: "3 < 5; go left. Found victim 3. It has two children (1 and 4) — Case 3."
+      - step: 12
+        kind: bstDelete
+        state:
+          phase: "delete"
+          op: "delete(3)"
+          tree:
+            value: 5
+            left: { value: 3, left: { value: 1 }, right: { value: 4 } }
+            right: { value: 8, left: { value: 7 }, right: { value: 9 } }
+          victim: 3
+          successor: 4
+          path: [5]
+          case: "two_children"
+        narration: "Find successor: leftmost of right subtree of victim. Right subtree's root is 4; 4 has no left child, so successor = 4."
+      - step: 13
+        kind: bstDelete
+        state:
+          phase: "delete"
+          op: "delete(3)"
+          tree:
+            value: 5
+            left: { value: 4, left: { value: 1 } }
+            right: { value: 8, left: { value: 7 }, right: { value: 9 } }
+          current: 4
+          path: [5]
+          case: "two_children"
+          inorder: [1, 4, 5, 7, 8, 9]
+        narration: "Hibbard delete: copy successor value 4 into the victim slot. Recursively delete the duplicate 4 from the right subtree — Case 2a there (no children below 4), so 4's slot becomes null. Tree now [5, 4, 8, 1, null, 7, 9]. Inorder: [1, 4, 5, 7, 8, 9]."
+      - step: 14
+        kind: bstDelete
+        state:
+          phase: "delete"
+          op: "delete(5)"
+          tree:
+            value: 5
+            left: { value: 4, left: { value: 1 } }
+            right: { value: 8, left: { value: 7 }, right: { value: 9 } }
+          current: 5
+          path: []
+          victim: 5
+          case: "two_children"
+        narration: "delete(5): start at root. cur = 5; match. Two children (4 and 8) — Case 3 again."
+      - step: 15
+        kind: bstDelete
+        state:
+          phase: "delete"
+          op: "delete(5)"
+          tree:
+            value: 5
+            left: { value: 4, left: { value: 1 } }
+            right: { value: 8, left: { value: 7 }, right: { value: 9 } }
+          path: []
+          victim: 5
+          current: 8
+          case: "two_children"
+        narration: "Walk the right subtree's left spine. Start at 8 (right child of victim)."
+      - step: 16
+        kind: bstDelete
+        state:
+          phase: "delete"
+          op: "delete(5)"
+          tree:
+            value: 5
+            left: { value: 4, left: { value: 1 } }
+            right: { value: 8, left: { value: 7 }, right: { value: 9 } }
+          path: []
+          victim: 5
+          current: 7
+          case: "two_children"
+        narration: "8 has a left child (7); descend. cur = 7."
+      - step: 17
+        kind: bstDelete
+        state:
+          phase: "delete"
+          op: "delete(5)"
+          tree:
+            value: 5
+            left: { value: 4, left: { value: 1 } }
+            right: { value: 8, left: { value: 7 }, right: { value: 9 } }
+          path: []
+          victim: 5
+          successor: 7
+          case: "two_children"
+        narration: "7 has no left child — successor = 7. (The smallest value larger than 5.)"
+      - step: 18
+        kind: bstDelete
+        state:
+          phase: "delete"
+          op: "delete(5)"
+          tree:
+            value: 7
+            left: { value: 4, left: { value: 1 } }
+            right: { value: 8, left: { value: 7 }, right: { value: 9 } }
+          current: 7
+          path: []
+          case: "two_children"
+        narration: "Value-copy: root.val = 7. The structural pointer to the root node is unchanged; only its label morphs from 5 to 7. Notice the duplicate 7 still hangs in the right subtree — the recursive delete will clean it up next."
+      - step: 19
+        kind: bstDelete
+        state:
+          phase: "delete"
+          op: "delete(5)"
+          tree:
+            value: 7
+            left: { value: 4, left: { value: 1 } }
+            right: { value: 8, left: { value: 7 }, right: { value: 9 } }
+          current: 8
+          path: [7]
+          case: "recurse_right"
+        narration: "Recurse delete_node(root.right, 7). cur = 8."
+      - step: 20
+        kind: bstDelete
+        state:
+          phase: "delete"
+          op: "delete(5)"
+          tree:
+            value: 7
+            left: { value: 4, left: { value: 1 } }
+            right: { value: 8, left: { value: 7 }, right: { value: 9 } }
+          current: 7
+          victim: 7
+          path: [7, 8]
+          case: "leaf"
+        narration: "7 < 8; go left. Match. Victim 7 has zero children — Case 1 (leaf). Return null; 8.left becomes null."
+      - step: 21
+        kind: bstDelete
+        state:
+          phase: "delete"
+          op: "delete(5)"
+          tree:
+            value: 7
+            left: { value: 4, left: { value: 1 } }
+            right: { value: 8, right: { value: 9 } }
+          current: null
+          inorder: [1, 4, 7, 8, 9]
+        narration: "Tree fully resettled. Final shape: 7 root, [4, 1] left chain, [8, null, 9] right chain. Inorder: [1, 4, 7, 8, 9] — sorted; invariant survived two deletes including the flagship Case 3."
+      - step: 22
+        kind: bstDelete
+        state:
+          phase: "summary"
+          tree:
+            value: 7
+            left: { value: 4, left: { value: 1 } }
+            right: { value: 8, right: { value: 9 } }
+          inorder: [1, 4, 7, 8, 9]
+        narration: "Summary: 7 inserts built [5, 3, 8, 1, 4, 7, 9]; search(4) walked an O(log n) path; delete(3) was Case 3 with successor 4 (a leaf successor); delete(5) was Case 3 with successor 7 (one-step left-spine walk). Hibbard's value-copy keeps the root pointer stable; the duplicate gets cleaned up by a recursive call that reduces to Case 1 or Case 2a."
+      - step: 23
+        kind: bstDelete
+        state:
+          phase: "summary"
+          tree:
+            value: 7
+            left: { value: 4, left: { value: 1 } }
+            right: { value: 8, right: { value: 9 } }
+          inorder: [1, 4, 7, 8, 9]
+          result: "[1, 4, 7, 8, 9]"
+        narration: "All operations complete. Every step ran in O(h); on this n=7 balanced shape, h=2 throughout. The pathological alternative — sorted insert — would force h=n; that's the gap chapter 6.6 closes with rotations."
+
+
+  panel-avl:
+    chapter: "6.6"
+    label: "AVL rotations (LL / RR / LR / RL on 3-node insert sequences)"
+    canonical_input: |
+      Four insert sequences, each shaped to trigger exactly one rotation
+      case on the third insert:
+        RR: [10, 20, 30]   ->  rotate_left(10)
+        LL: [30, 20, 10]   ->  rotate_right(30)
+        RL: [10, 30, 20]   ->  rotate_right(30); rotate_left(10)
+        LR: [30, 10, 20]   ->  rotate_left(10); rotate_right(30)
+      All four converge to: root=20, left=10, right=30, height=2, BF(root)=0.
+    presets:
+      - id: single_left_rotation
+        label: "RR — single left rotation (insert 10, 20, 30)"
+        input: { sequence: [10, 20, 30] }
+      - id: single_right_rotation
+        label: "LL — single right rotation (insert 30, 20, 10)"
+        input: { sequence: [30, 20, 10] }
+      - id: double_rotation_rl
+        label: "RL — right-then-left double (insert 10, 30, 20)"
+        input: { sequence: [10, 30, 20] }
+      - id: double_rotation_lr
+        label: "LR — left-then-right double (insert 30, 10, 20)"
+        input: { sequence: [30, 10, 20] }
+    n_steps: 28
+    # Trace generated from the verified Python reference (,
+    # §4); deterministic re-runs match the §4 step buffer byte-for-byte
+    #. 7 steps per case x 4 cases = 28 steps.
+    keyframes:
+      # Tree state uses the recursive { value, left, right } shape so the
+      # tree renderer (shared with panel-bst-ops) can draw it directly.
+      # Balance factors live in narration; the rotation phase is also
+      # surfaced as a side-panel badge by applyBst.
+      # ===== Case RR (single left rotation): inserts [10, 20, 30] =====
+      - step: 0
+        kind: init
+        state: { case: RR, phase: start, tree: null }
+        narration: "RR case: empty tree; will insert 10, 20, 30."
+      - step: 1
+        kind: bstInsert
+        payload: { key: 10, parentId: null, side: null }
+        state:
+          case: RR
+          phase: insert
+          tree: { value: 10 }
+        narration: "Insert 10 as root; height 1, BF 0."
+      - step: 2
+        kind: bstInsert
+        payload: { key: 20, parentId: 10, side: right }
+        state:
+          case: RR
+          phase: insert
+          tree: { value: 10, right: { value: 20 } }
+        narration: "Insert 20 as right child of 10; BF(10) = -1, still balanced."
+      - step: 3
+        kind: bstInsert
+        payload: { key: 30, parentId: 20, side: right }
+        state:
+          case: RR
+          phase: detect_imbalance
+          tree: { value: 10, right: { value: 20, right: { value: 30 } } }
+        narration: "Insert 30 as right-right; BF(10) = -2 violates AVL invariant."
+      - step: 4
+        kind: rotateLeft
+        payload: { pivot: 10 }
+        state:
+          case: RR
+          phase: rotate
+          tree: { value: 10, right: { value: 20, right: { value: 30 } } }
+        narration: "RR case detected: BF(root) < -1 AND key > root.right.key. Single left rotation around 10."
+      - step: 5
+        kind: setBalanceFactor
+        payload: { nodeId: 20, value: 0 }
+        state:
+          case: RR
+          phase: settle
+          tree: { value: 20, left: { value: 10 }, right: { value: 30 } }
+        narration: "20 ascends to root; 10 becomes left child; 30 stays right child. All BFs now 0."
+      - step: 6
+        kind: terminate
+        state:
+          case: RR
+          phase: settle
+          tree: { value: 20, left: { value: 10 }, right: { value: 30 } }
+        narration: "Final: balanced AVL with height 2; one rotation, O(1) cost."
+
+      # ===== Case LL (single right rotation): inserts [30, 20, 10] =====
+      - step: 7
+        kind: init
+        state: { case: LL, phase: start, tree: null }
+        narration: "LL case: empty tree; will insert 30, 20, 10."
+      - step: 8
+        kind: bstInsert
+        payload: { key: 30, parentId: null, side: null }
+        state:
+          case: LL
+          phase: insert
+          tree: { value: 30 }
+        narration: "Insert 30 as root."
+      - step: 9
+        kind: bstInsert
+        payload: { key: 20, parentId: 30, side: left }
+        state:
+          case: LL
+          phase: insert
+          tree: { value: 30, left: { value: 20 } }
+        narration: "Insert 20 as left child of 30; BF(30) = +1, still balanced."
+      - step: 10
+        kind: bstInsert
+        payload: { key: 10, parentId: 20, side: left }
+        state:
+          case: LL
+          phase: detect_imbalance
+          tree: { value: 30, left: { value: 20, left: { value: 10 } } }
+        narration: "Insert 10 as left-left; BF(30) = +2 violates AVL invariant."
+      - step: 11
+        kind: rotateRight
+        payload: { pivot: 30 }
+        state:
+          case: LL
+          phase: rotate
+          tree: { value: 30, left: { value: 20, left: { value: 10 } } }
+        narration: "LL case detected: BF(root) > 1 AND key < root.left.key. Single right rotation around 30."
+      - step: 12
+        kind: setBalanceFactor
+        payload: { nodeId: 20, value: 0 }
+        state:
+          case: LL
+          phase: settle
+          tree: { value: 20, left: { value: 10 }, right: { value: 30 } }
+        narration: "20 ascends to root; 30 demotes to right child; 10 stays left child."
+      - step: 13
+        kind: terminate
+        state:
+          case: LL
+          phase: settle
+          tree: { value: 20, left: { value: 10 }, right: { value: 30 } }
+        narration: "Final: balanced AVL with height 2; mirror of the RR case."
+
+      # ===== Case RL (double rotation: right then left): inserts [10, 30, 20] =====
+      - step: 14
+        kind: init
+        state: { case: RL, phase: start, tree: null }
+        narration: "RL case: empty tree; will insert 10, 30, 20."
+      - step: 15
+        kind: bstInsert
+        payload: { key: 10, parentId: null, side: null }
+        state:
+          case: RL
+          phase: insert
+          tree: { value: 10 }
+        narration: "Insert 10 as root."
+      - step: 16
+        kind: bstInsert
+        payload: { key: 30, parentId: 10, side: right }
+        state:
+          case: RL
+          phase: insert
+          tree: { value: 10, right: { value: 30 } }
+        narration: "Insert 30 as right child of 10; BF(10) = -1."
+      - step: 17
+        kind: bstInsert
+        payload: { key: 20, parentId: 30, side: left }
+        state:
+          case: RL
+          phase: detect_imbalance
+          tree: { value: 10, right: { value: 30, left: { value: 20 } } }
+        narration: "Insert 20 as right-LEFT (zig-zag). BF(10) = -2 AND BF(right) = +1 — opposite signs mean a single rotation will not fix it."
+      - step: 18
+        kind: rotateRight
+        payload: { pivot: 30 }
+        state:
+          case: RL
+          phase: rotate
+          tree: { value: 10, right: { value: 20, right: { value: 30 } } }
+        narration: "Step 1 of 2: right rotation around 30 straightens the right subtree to RR shape."
+      - step: 19
+        kind: rotateLeft
+        payload: { pivot: 10 }
+        state:
+          case: RL
+          phase: rotate
+          tree: { value: 20, left: { value: 10 }, right: { value: 30 } }
+        narration: "Step 2 of 2: left rotation around 10 fixes the now-RR imbalance at root."
+      - step: 20
+        kind: terminate
+        state:
+          case: RL
+          phase: settle
+          tree: { value: 20, left: { value: 10 }, right: { value: 30 } }
+        narration: "Final: 20 ascends to root via two single rotations; height 2."
+
+      # ===== Case LR (double rotation: left then right): inserts [30, 10, 20] =====
+      - step: 21
+        kind: init
+        state: { case: LR, phase: start, tree: null }
+        narration: "LR case: empty tree; will insert 30, 10, 20."
+      - step: 22
+        kind: bstInsert
+        payload: { key: 30, parentId: null, side: null }
+        state:
+          case: LR
+          phase: insert
+          tree: { value: 30 }
+        narration: "Insert 30 as root."
+      - step: 23
+        kind: bstInsert
+        payload: { key: 10, parentId: 30, side: left }
+        state:
+          case: LR
+          phase: insert
+          tree: { value: 30, left: { value: 10 } }
+        narration: "Insert 10 as left child of 30; BF(30) = +1."
+      - step: 24
+        kind: bstInsert
+        payload: { key: 20, parentId: 10, side: right }
+        state:
+          case: LR
+          phase: detect_imbalance
+          tree: { value: 30, left: { value: 10, right: { value: 20 } } }
+        narration: "Insert 20 as left-RIGHT (zig-zag). BF(30) = +2 AND BF(left) = -1 — opposite signs again, double rotation needed."
+      - step: 25
+        kind: rotateLeft
+        payload: { pivot: 10 }
+        state:
+          case: LR
+          phase: rotate
+          tree: { value: 30, left: { value: 20, left: { value: 10 } } }
+        narration: "Step 1 of 2: left rotation around 10 straightens the left subtree to LL shape."
+      - step: 26
+        kind: rotateRight
+        payload: { pivot: 30 }
+        state:
+          case: LR
+          phase: rotate
+          tree: { value: 20, left: { value: 10 }, right: { value: 30 } }
+        narration: "Step 2 of 2: right rotation around 30 fixes the now-LL imbalance at root."
+      - step: 27
+        kind: terminate
+        state:
+          case: LR
+          phase: settle
+          tree: { value: 20, left: { value: 10 }, right: { value: 30 } }
+        narration: "Final: mirror of the RL case; same balanced shape, height 2."
+
+selector_default: panel-avl
+
+notes: |
+  Shared widget for chapters 6.5 (BST mechanics) and 6.6 (AVL rotations).
+  Panel-avl is complete; panel-bst-ops is a scaffold (presets defined,
+  keyframes pending until chapter 6.5's research lands). All four AVL
+  presets converge to the same balanced shape: root=20, left=10, right=30,
+  height=2, BF(root)=0, BF(children)=0. The widget engineer copies the
+  keyframe stream above into algorithm.ts's build() function with no
+  recomputation. Wong palette per DSA style guide: orange for the active
+  pivot, vermilion for the imbalanced node, bluish green for the
+  post-rotation new root, sky blue for re-anchored subtrees.

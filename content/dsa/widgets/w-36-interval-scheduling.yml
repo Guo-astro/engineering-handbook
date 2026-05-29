@@ -1,0 +1,307 @@
+# Interval scheduling — non-overlap (LC 435) and min-arrows (LC 452)
+#
+# Multi-panel chapter widget shared by 10.1 and 10.2.
+# Panel-non-overlap: chapter 10.1 (LC 435 sort-by-end + drop-on-overlap).
+# Panel-min-arrows:  chapter 10.2 (LC 452 same algorithm, +1 framing). SCAFFOLD.
+#
+# Both panels render the same visual: a horizontal axis with intervals as
+# colored bars. The selected (kept) interval pins; the running cursor is a
+# vertical line at currentEnd; conflicting intervals fade to grey on drop.
+
+id: w-36-interval-scheduling
+title: "Interval scheduling: non-overlap and min-arrows"
+type: dual-panel-shared
+level: 1
+modes: [preset, randomize, edit]
+
+caps:
+  interval_count: { min: 2, max: 16 }
+  endpoints: { min: 0, max: 100 }
+
+commands:
+  - name: sortByEnd
+    payload: { order: 'list[index]' }
+    description: "Pre-loop: animate the sort by end-coordinate ascending."
+  - name: advanceCursor
+    payload: { intervalIndex: 'integer', start: 'integer', end: 'integer' }
+    description: "Highlight the next interval under consideration."
+  - name: keepInterval
+    payload: { intervalIndex: 'integer', newCurrentEnd: 'integer' }
+    description: "Pin the interval as kept; advance the cursor to its end."
+  - name: dropInterval
+    payload: { intervalIndex: 'integer', conflictWith: 'integer' }
+    description: "Fade the interval to grey; bump the drop counter."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-36-interval-scheduling-fallback.svg
+  keyframes_used: [0, "first_drop", "n_steps/2", "n_steps-1"]
+
+selector_default: panel-non-overlap
+
+panels:
+  panel-non-overlap:
+    chapter: "10.1"
+    label: "Non-overlapping intervals (LC 435)"
+    canonical_input: |
+      intervals = [[1,2],[2,3],[3,4],[1,3]]
+      goal = "minimum intervals to remove so the rest are non-overlapping"
+    presets:
+      - id: lc_435_canonical
+        label: "LC 435 canonical: [[1,2],[2,3],[3,4],[1,3]] → 1"
+        input: { intervals: [[1, 2], [2, 3], [3, 4], [1, 3]] }
+      - id: sort_by_start_trap
+        label: "Sort-by-start trap: [[1,100],[2,3],[3,4]] → 1"
+        input: { intervals: [[1, 100], [2, 3], [3, 4]] }
+      - id: all_identical
+        label: "All identical: [[1,2],[1,2],[1,2]] → 2"
+        input: { intervals: [[1, 2], [1, 2], [1, 2]] }
+    n_steps: 11
+    keyframes:
+      - step_id: 0
+        action: init
+        highlights: []
+        state_snapshot:
+          intervals_unsorted: [[1, 2], [2, 3], [3, 4], [1, 3]]
+          current_end: null
+          removed: 0
+        narration: |
+          Start with four intervals in input order. The cursor is empty;
+          nothing has been kept yet.
+      - step_id: 1
+        action: sortByEnd
+        highlights: ["all-intervals"]
+        state_snapshot:
+          intervals_sorted: [[1, 2], [1, 3], [2, 3], [3, 4]]
+          current_end: null
+          removed: 0
+        narration: |
+          Sort ascending by end-time. The order is now [1,2], [1,3], [2,3],
+          [3,4]. This is the entire greedy decision: pick what finishes
+          earliest first.
+      - step_id: 2
+        action: advanceCursor
+        highlights: ["interval-0"]
+        state_snapshot:
+          considering: [1, 2]
+          current_end: null
+          removed: 0
+        narration: "Consider [1,2]. No prior cursor, so it cannot conflict."
+      - step_id: 3
+        action: keepInterval
+        highlights: ["interval-0", "cursor"]
+        state_snapshot:
+          considering: [1, 2]
+          current_end: 2
+          removed: 0
+        narration: |
+          Keep [1,2]. The cursor moves to 2 — anything starting before 2
+          will now conflict.
+      - step_id: 4
+        action: advanceCursor
+        highlights: ["interval-1"]
+        state_snapshot:
+          considering: [1, 3]
+          current_end: 2
+          removed: 0
+        narration: "Consider [1,3]. Its start is 1; the cursor is at 2."
+      - step_id: 5
+        action: dropInterval
+        highlights: ["interval-1", "interval-0"]
+        state_snapshot:
+          considering: [1, 3]
+          current_end: 2
+          removed: 1
+        narration: |
+          1 < 2, so [1,3] overlaps the kept [1,2]. Drop it. Keep the
+          earlier-ending interval — that is the exchange argument in one
+          step. Removed counter ticks to 1.
+      - step_id: 6
+        action: advanceCursor
+        highlights: ["interval-2"]
+        state_snapshot:
+          considering: [2, 3]
+          current_end: 2
+          removed: 1
+        narration: "Consider [2,3]. Its start is 2; the cursor is at 2."
+      - step_id: 7
+        action: keepInterval
+        highlights: ["interval-2", "cursor"]
+        state_snapshot:
+          considering: [2, 3]
+          current_end: 3
+          removed: 1
+        narration: |
+          2 is not less than 2 — the touch counts as non-overlap for LC 435.
+          Keep [2,3]. Cursor advances to 3.
+      - step_id: 8
+        action: advanceCursor
+        highlights: ["interval-3"]
+        state_snapshot:
+          considering: [3, 4]
+          current_end: 3
+          removed: 1
+        narration: "Consider [3,4]. Its start is 3; the cursor is at 3."
+      - step_id: 9
+        action: keepInterval
+        highlights: ["interval-3", "cursor"]
+        state_snapshot:
+          considering: [3, 4]
+          current_end: 4
+          removed: 1
+        narration: |
+          3 is not less than 3. Keep [3,4]. Cursor advances to 4.
+      - step_id: 10
+        action: answer
+        highlights: ["removed-counter"]
+        state_snapshot:
+          considering: null
+          current_end: 4
+          removed: 1
+          kept: [[1, 2], [2, 3], [3, 4]]
+        narration: |
+          Loop done. Three intervals kept, one dropped. Answer = 1.
+          The kept set [[1,2], [2,3], [3,4]] is the maximum
+          non-overlapping subset; equivalently, the minimum drop count
+          to make the rest compatible is 1.
+
+  panel-min-arrows:
+    chapter: "10.1"
+    label: "Minimum number of arrows (LC 452, same algorithm, kept-count answer)"
+    canonical_input: |
+      points = [[10,16],[2,8],[1,6],[7,12]]
+      goal = "minimum arrows to burst all balloons"
+    presets:
+      - id: lc_452_canonical
+        label: "LC 452: [[10,16],[2,8],[1,6],[7,12]] -> 2"
+        input: { points: [[10, 16], [2, 8], [1, 6], [7, 12]] }
+      - id: lc_452_no_overlap
+        label: "Disjoint balloons (4 inputs -> 4 arrows)"
+        input: { points: [[1, 2], [3, 4], [5, 6], [7, 8]] }
+    n_steps: 12
+    # Trace transcribed from the chapter prose at line 169 — the
+    # reframing for points and arrows. Same sort-by-end loop as
+    # panel-non-overlap; the answer is the kept count, not the dropped
+    # count. After sort: [[1,6], [2,8], [7,12], [10,16]]. Greedy keeps
+    # [1,6] and [7,12]; the [2,8] balloon bursts under the first arrow,
+    # the [10,16] balloon bursts under the second.
+    keyframes:
+      - step_id: 0
+        action: init
+        highlights: []
+        state_snapshot:
+          intervals_unsorted: [[10, 16], [2, 8], [1, 6], [7, 12]]
+          current_end: null
+          arrows: 0
+        narration: "Four balloons drawn on the x-axis as intervals. arrows = 0; no arrow has been shot yet."
+      - step_id: 1
+        action: sortByEnd
+        highlights: ["all-intervals"]
+        state_snapshot:
+          intervals_sorted: [[1, 6], [2, 8], [7, 12], [10, 16]]
+          current_end: null
+          arrows: 0
+        narration: "Sort ascending by end-time: [[1,6], [2,8], [7,12], [10,16]]. Same comparator as LC 435 — earliest-finishing first. The two problems differ only in what we count."
+      - step_id: 2
+        action: advanceCursor
+        highlights: ["interval-0"]
+        state_snapshot:
+          considering: [1, 6]
+          current_end: null
+          arrows: 0
+        narration: "Consider [1, 6]. No prior arrow yet, so this balloon needs a new one."
+      - step_id: 3
+        action: keepInterval
+        highlights: ["interval-0", "cursor"]
+        state_snapshot:
+          considering: [1, 6]
+          current_end: 6
+          arrows: 1
+        narration: "Shoot arrow #1 at the right end of [1, 6], i.e. at x = 6. arrows = 1. The cursor at x = 6 is the rightmost point this arrow covers."
+      - step_id: 4
+        action: advanceCursor
+        highlights: ["interval-1"]
+        state_snapshot:
+          considering: [2, 8]
+          current_end: 6
+          arrows: 1
+        narration: "Consider [2, 8]. Its start is 2; the cursor (current arrow's x) is at 6."
+      - step_id: 5
+        action: dropInterval
+        highlights: ["interval-1", "interval-0"]
+        state_snapshot:
+          considering: [2, 8]
+          current_end: 6
+          arrows: 1
+          burst_balloons: 1
+        narration: "2 <= 6, so [2, 8] contains x = 6 — the arrow at x = 6 also bursts this balloon. No new arrow needed. (LC 435's drop count goes up, but here we're tracking arrow count which is the kept count; same algorithm, opposite report.)"
+      - step_id: 6
+        action: advanceCursor
+        highlights: ["interval-2"]
+        state_snapshot:
+          considering: [7, 12]
+          current_end: 6
+          arrows: 1
+          burst_balloons: 1
+        narration: "Consider [7, 12]. Its start is 7; the cursor is at 6."
+      - step_id: 7
+        action: keepInterval
+        highlights: ["interval-2", "cursor"]
+        state_snapshot:
+          considering: [7, 12]
+          current_end: 12
+          arrows: 2
+          burst_balloons: 1
+        narration: "7 > 6, so [7, 12] is out of reach of arrow #1. Shoot arrow #2 at x = 12 (the right end of [7, 12]). arrows = 2."
+      - step_id: 8
+        action: advanceCursor
+        highlights: ["interval-3"]
+        state_snapshot:
+          considering: [10, 16]
+          current_end: 12
+          arrows: 2
+          burst_balloons: 1
+        narration: "Consider [10, 16]. Its start is 10; the cursor is at 12."
+      - step_id: 9
+        action: dropInterval
+        highlights: ["interval-3", "interval-2"]
+        state_snapshot:
+          considering: [10, 16]
+          current_end: 12
+          arrows: 2
+          burst_balloons: 2
+        narration: "10 <= 12, so arrow #2 also bursts [10, 16]. No new arrow needed."
+      - step_id: 10
+        action: answer
+        highlights: ["arrow-counter"]
+        state_snapshot:
+          considering: null
+          current_end: 12
+          arrows: 2
+          burst_balloons: 2
+          kept: [[1, 6], [7, 12]]
+        narration: "Loop done. Two arrows kept; two balloons burst as collateral. Answer = arrows = 2."
+      - step_id: 11
+        action: answer
+        highlights: ["arrow-counter"]
+        state_snapshot:
+          considering: null
+          current_end: 12
+          arrows: 2
+          burst_balloons: 2
+          kept: [[1, 6], [7, 12]]
+        narration: "Compare to LC 435 on the same input: dropped = 2, kept = 2. Same partition; LC 435 reports the dropped count, LC 452 reports the kept count. n - kept = dropped. Two LeetCode problems, one algorithm, two different return values."
+
+
+notes: |
+  Shared chapter widget. The two panels render the SAME algorithm
+  (sort-by-end + drop-on-overlap) but report different answers:
+  10.1 reports the drop count; 10.2 reports (kept count) which is the
+  number of "arrow groups." This is the cleanest physical demonstration
+  that LC 435 and LC 452 are the same problem with two faces.
+
+  Panel-non-overlap is keyframe-complete (11 steps on canonical LC 435
+  input). The sort-by-start-trap preset surfaces the chapter's wrong-
+  answer demonstration as an interactive widget mode.
+
+  Panel-min-arrows is scaffolded; chapter 10.2 author fills the trace.

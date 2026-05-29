@@ -1,0 +1,362 @@
+# MST: Kruskal + Prim, side-by-side (chapters 8.11 + 8.12)
+# Dual-panel shared widget.
+#
+# Both panels run on the SAME canonical 7-vertex weighted undirected
+# graph (vertices A..G, 11 edges, distinct integer weights so the MST
+# is unique). When the orchestrator's `synchronized` toggle is on, both
+# panels advance in lockstep at the rate of "edges absorbed into the
+# MST" - every accept in either panel triggers both to advance to the
+# next accept. When off, each panel runs independently.
+#
+# panel-kruskal: COMPLETE (chapter 8.11 ratified 2026-05-25).
+# panel-prim:    COMPLETE (chapter 8.12 ratified 2026-05-25).
+#
+# Both panels arrive at the same MST:
+#   {A-B 1, B-C 2, C-D 4, D-E 6, D-F 8, E-G 10}    total = 31
+
+id: w-30-mst-kruskal-prim
+title: "MST: Kruskal + Prim (side-by-side)"
+type: dual-panel-shared
+level: 1
+modes: [preset, randomize, edit]
+
+caps:
+  n_vertices: { min: 3, max: 10 }
+  n_edges: { min: 3, max: 20 }
+  weights: { min: 1, max: 99 }
+  trace_length: { max: 1000 }
+
+commands:
+  - name: acceptEdge
+    payload: { edge: { u: 'string', v: 'string', w: 'integer' } }
+    description: "Thicken the absorbed edge; mark endpoints in-MST; bump total."
+  - name: rejectEdge
+    payload: { edge: { u: 'string', v: 'string', w: 'integer' }, reason: 'string' }
+    description: "Flash the popped/queried edge in vermilion; do not absorb. Reason is 'cycle' (Kruskal) or 'stale' (Prim)."
+  - name: pushFrontier
+    payload: { from: 'string', to: 'string', w: 'integer', pq_size: 'integer' }
+    description: "Prim only: enqueue (w, to) into the heap column; flash yellow."
+  - name: extractMin
+    payload: { w: 'integer', v: 'string', pq_size: 'integer' }
+    description: "Prim only: pop the heap's minimum; flash on the top of the heap column."
+  - name: query
+    payload: { edge: { u: 'string', v: 'string', w: 'integer' }, find_u_root: 'string', find_v_root: 'string', same_component: 'boolean' }
+    description: "Kruskal only: probe union-find on the next sorted edge; show the root-of-u and root-of-v lookups."
+  - name: answer
+    payload: { total: 'integer', mst_edges: 'array' }
+    description: "Final answer; freeze with the MST highlighted."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-30-mst-kruskal-prim-fallback.svg
+  keyframes_used: [0, "first_accept", "n_steps/2", "n_steps-1"]
+
+panels:
+  panel-kruskal:
+    chapter: "8.11"
+    label: "Kruskal - sorted edge list, Union-Find cycle detection"
+    canonical_input: |
+      vertices: [A, B, C, D, E, F, G]
+      edges:
+        A-B 1, B-C 2, A-C 3, C-D 4, B-D 5, D-E 6,
+        C-E 7, D-F 8, E-F 9, E-G 10, F-G 11
+    presets:
+      - id: canonical_seven_vertex
+        label: "Canonical 7-vertex (distinct weights, unique MST)"
+        input:
+          vertices: [A, B, C, D, E, F, G]
+          edges:
+            - { u: A, v: B, w: 1 }
+            - { u: B, v: C, w: 2 }
+            - { u: A, v: C, w: 3 }
+            - { u: C, v: D, w: 4 }
+            - { u: B, v: D, w: 5 }
+            - { u: D, v: E, w: 6 }
+            - { u: C, v: E, w: 7 }
+            - { u: D, v: F, w: 8 }
+            - { u: E, v: F, w: 9 }
+            - { u: E, v: G, w: 10 }
+            - { u: F, v: G, w: 11 }
+    n_steps: 23
+    keyframes:
+      - step: 0
+        kind: init
+        state: { components: [A, B, C, D, E, F, G], mst_edges: [], mst_weight: 0 }
+        narration: "Initial state. 7 vertices, 11 edges, 7 disjoint singleton components. MST is empty."
+      - step: 1
+        kind: sort
+        state: { sorted: true, n_edges: 11 }
+        narration: "Sort edges by weight ascending: A-B 1, B-C 2, A-C 3, C-D 4, B-D 5, D-E 6, C-E 7, D-F 8, E-F 9, E-G 10, F-G 11."
+      - step: 2
+        kind: query
+        payload: { edge: { u: A, v: B, w: 1 }, find_u_root: A, find_v_root: B, same_component: false }
+        narration: "Probe edge A-B (1). find(A) = A, find(B) = B. Different roots."
+      - step: 3
+        kind: acceptEdge
+        payload: { edge: { u: A, v: B, w: 1 } }
+        state: { components: [A, A, C, D, E, F, G], mst_weight: 1, accepted: 1 }
+        narration: "Accept A-B (1). Total = 1. Union the two components."
+      - step: 4
+        kind: query
+        payload: { edge: { u: B, v: C, w: 2 }, find_u_root: A, find_v_root: C, same_component: false }
+        narration: "Probe B-C (2). find(B) = A, find(C) = C. Different roots."
+      - step: 5
+        kind: acceptEdge
+        payload: { edge: { u: B, v: C, w: 2 } }
+        state: { components: [A, A, A, D, E, F, G], mst_weight: 3, accepted: 2 }
+        narration: "Accept B-C (2). Total = 3."
+      - step: 6
+        kind: query
+        payload: { edge: { u: A, v: C, w: 3 }, find_u_root: A, find_v_root: A, same_component: true }
+        narration: "Probe A-C (3). find(A) = A, find(C) = A. Same component."
+      - step: 7
+        kind: rejectEdge
+        payload: { edge: { u: A, v: C, w: 3 }, reason: "cycle" }
+        narration: "Reject A-C (3). Both endpoints already in component {A, B, C}; accepting would close a cycle."
+      - step: 8
+        kind: query
+        payload: { edge: { u: C, v: D, w: 4 }, find_u_root: A, find_v_root: D, same_component: false }
+        narration: "Probe C-D (4). Different roots."
+      - step: 9
+        kind: acceptEdge
+        payload: { edge: { u: C, v: D, w: 4 } }
+        state: { components: [A, A, A, A, E, F, G], mst_weight: 7, accepted: 3 }
+        narration: "Accept C-D (4). Total = 7."
+      - step: 10
+        kind: query
+        payload: { edge: { u: B, v: D, w: 5 }, find_u_root: A, find_v_root: A, same_component: true }
+        narration: "Probe B-D (5). Same component."
+      - step: 11
+        kind: rejectEdge
+        payload: { edge: { u: B, v: D, w: 5 }, reason: "cycle" }
+        narration: "Reject B-D (5). Both endpoints in {A, B, C, D}."
+      - step: 12
+        kind: query
+        payload: { edge: { u: D, v: E, w: 6 }, find_u_root: A, find_v_root: E, same_component: false }
+        narration: "Probe D-E (6). Different roots."
+      - step: 13
+        kind: acceptEdge
+        payload: { edge: { u: D, v: E, w: 6 } }
+        state: { components: [A, A, A, A, A, F, G], mst_weight: 13, accepted: 4 }
+        narration: "Accept D-E (6). Total = 13."
+      - step: 14
+        kind: query
+        payload: { edge: { u: C, v: E, w: 7 }, find_u_root: A, find_v_root: A, same_component: true }
+        narration: "Probe C-E (7). Same component."
+      - step: 15
+        kind: rejectEdge
+        payload: { edge: { u: C, v: E, w: 7 }, reason: "cycle" }
+        narration: "Reject C-E (7)."
+      - step: 16
+        kind: query
+        payload: { edge: { u: D, v: F, w: 8 }, find_u_root: A, find_v_root: F, same_component: false }
+        narration: "Probe D-F (8). Different roots."
+      - step: 17
+        kind: acceptEdge
+        payload: { edge: { u: D, v: F, w: 8 } }
+        state: { components: [A, A, A, A, A, A, G], mst_weight: 21, accepted: 5 }
+        narration: "Accept D-F (8). Total = 21."
+      - step: 18
+        kind: query
+        payload: { edge: { u: E, v: F, w: 9 }, find_u_root: A, find_v_root: A, same_component: true }
+        narration: "Probe E-F (9). Same component."
+      - step: 19
+        kind: rejectEdge
+        payload: { edge: { u: E, v: F, w: 9 }, reason: "cycle" }
+        narration: "Reject E-F (9)."
+      - step: 20
+        kind: query
+        payload: { edge: { u: E, v: G, w: 10 }, find_u_root: A, find_v_root: G, same_component: false }
+        narration: "Probe E-G (10). Different roots."
+      - step: 21
+        kind: acceptEdge
+        payload: { edge: { u: E, v: G, w: 10 } }
+        state: { components: [A, A, A, A, A, A, A], mst_weight: 31, accepted: 6 }
+        narration: "Accept E-G (10). Total = 31. Six edges accepted = n - 1; the MST is complete. Edge F-G (11) is never examined; the early break skips it."
+      - step: 22
+        kind: answer
+        payload: { total: 31, mst_edges: [{u:A,v:B,w:1},{u:B,v:C,w:2},{u:C,v:D,w:4},{u:D,v:E,w:6},{u:D,v:F,w:8},{u:E,v:G,w:10}] }
+        narration: "Done. MST = {A-B 1, B-C 2, C-D 4, D-E 6, D-F 8, E-G 10}. Total weight 31. 4 cycle-rejects along the way."
+
+  panel-prim:
+    chapter: "8.12"
+    label: "Prim - lazy PQ, frontier expansion from start vertex A"
+    canonical_input: |
+      vertices: [A, B, C, D, E, F, G]
+      edges (same as panel-kruskal):
+        A-B 1, B-C 2, A-C 3, C-D 4, B-D 5, D-E 6,
+        C-E 7, D-F 8, E-F 9, E-G 10, F-G 11
+      start_vertex: A
+    presets:
+      - id: canonical_seven_vertex
+        label: "Canonical 7-vertex (distinct weights, unique MST)"
+        input:
+          vertices: [A, B, C, D, E, F, G]
+          edges:
+            - { u: A, v: B, w: 1 }
+            - { u: B, v: C, w: 2 }
+            - { u: A, v: C, w: 3 }
+            - { u: C, v: D, w: 4 }
+            - { u: B, v: D, w: 5 }
+            - { u: D, v: E, w: 6 }
+            - { u: C, v: E, w: 7 }
+            - { u: D, v: F, w: 8 }
+            - { u: E, v: F, w: 9 }
+            - { u: E, v: G, w: 10 }
+            - { u: F, v: G, w: 11 }
+          start_vertex: A
+    n_steps: 31
+    keyframes:
+      - step: 0
+        kind: init
+        state: { in_mst: [], pq: [{ w: 0, v: A }], total: 0 }
+        narration: "Initial state. Heap seeded with (weight=0, vertex=A); the start vertex pays nothing to enter the MST."
+      - step: 1
+        kind: extractMin
+        payload: { w: 0, v: A, pq_size: 0 }
+        state: { in_mst: [], pq: [] }
+        narration: "Pop (0, A). A is not in the MST yet; absorb."
+      - step: 2
+        kind: acceptEdge
+        payload: { edge: { u: "-", v: A, w: 0 } }
+        state: { in_mst: [A], total: 0 }
+        narration: "Absorb A as the start vertex. Total stays at 0; no edge is added."
+      - step: 3
+        kind: pushFrontier
+        payload: { from: A, to: B, w: 1, pq_size: 1 }
+        narration: "Frontier scan from A. Push (w=1, B)."
+      - step: 4
+        kind: pushFrontier
+        payload: { from: A, to: C, w: 3, pq_size: 2 }
+        narration: "Push (w=3, C)."
+      - step: 5
+        kind: extractMin
+        payload: { w: 1, v: B, pq_size: 1 }
+        narration: "Pop (1, B). Cheapest crossing edge from {A} to outside; absorb."
+      - step: 6
+        kind: acceptEdge
+        payload: { edge: { u: A, v: B, w: 1 } }
+        state: { in_mst: [A, B], total: 1 }
+        narration: "Absorb edge A-B (1). Total = 1."
+      - step: 7
+        kind: pushFrontier
+        payload: { from: B, to: C, w: 2, pq_size: 2 }
+        narration: "Frontier scan from B. Push (w=2, C). The heap now holds two entries for C: (3, C) and (2, C). The cheaper one will win on extract."
+      - step: 8
+        kind: pushFrontier
+        payload: { from: B, to: D, w: 5, pq_size: 3 }
+        narration: "Push (w=5, D). [A is already in MST, skipped.]"
+      - step: 9
+        kind: extractMin
+        payload: { w: 2, v: C, pq_size: 2 }
+        narration: "Pop (2, C). Cheapest crossing edge; absorb."
+      - step: 10
+        kind: acceptEdge
+        payload: { edge: { u: B, v: C, w: 2 } }
+        state: { in_mst: [A, B, C], total: 3 }
+        narration: "Absorb edge B-C (2). Total = 3. The earlier (3, C) entry is now stale."
+      - step: 11
+        kind: pushFrontier
+        payload: { from: C, to: D, w: 4, pq_size: 3 }
+        narration: "Frontier scan from C. Push (w=4, D)."
+      - step: 12
+        kind: pushFrontier
+        payload: { from: C, to: E, w: 7, pq_size: 4 }
+        narration: "Push (w=7, E). [A, B are in MST, skipped.]"
+      - step: 13
+        kind: rejectEdge
+        payload: { edge: { u: A, v: C, w: 3 }, reason: "stale" }
+        state: { in_mst: [A, B, C], total: 3 }
+        narration: "Pop (3, C). Stale - C was absorbed at step 10 via the cheaper (2, C). Skip."
+      - step: 14
+        kind: extractMin
+        payload: { w: 4, v: D, pq_size: 3 }
+        narration: "Pop (4, D). Cheapest crossing edge; absorb."
+      - step: 15
+        kind: acceptEdge
+        payload: { edge: { u: C, v: D, w: 4 } }
+        state: { in_mst: [A, B, C, D], total: 7 }
+        narration: "Absorb edge C-D (4). Total = 7. The (5, D) entry is now stale."
+      - step: 16
+        kind: pushFrontier
+        payload: { from: D, to: E, w: 6, pq_size: 4 }
+        narration: "Frontier scan from D. Push (w=6, E)."
+      - step: 17
+        kind: pushFrontier
+        payload: { from: D, to: F, w: 8, pq_size: 5 }
+        narration: "Push (w=8, F). [B, C are in MST, skipped.]"
+      - step: 18
+        kind: rejectEdge
+        payload: { edge: { u: B, v: D, w: 5 }, reason: "stale" }
+        state: { in_mst: [A, B, C, D], total: 7 }
+        narration: "Pop (5, D). Stale. Skip."
+      - step: 19
+        kind: extractMin
+        payload: { w: 6, v: E, pq_size: 4 }
+        narration: "Pop (6, E). Cheapest crossing edge; absorb."
+      - step: 20
+        kind: acceptEdge
+        payload: { edge: { u: D, v: E, w: 6 } }
+        state: { in_mst: [A, B, C, D, E], total: 13 }
+        narration: "Absorb edge D-E (6). Total = 13. The (7, E) entry is now stale."
+      - step: 21
+        kind: pushFrontier
+        payload: { from: E, to: F, w: 9, pq_size: 5 }
+        narration: "Frontier scan from E. Push (w=9, F)."
+      - step: 22
+        kind: pushFrontier
+        payload: { from: E, to: G, w: 10, pq_size: 6 }
+        narration: "Push (w=10, G). [C, D in MST, skipped.]"
+      - step: 23
+        kind: rejectEdge
+        payload: { edge: { u: C, v: E, w: 7 }, reason: "stale" }
+        narration: "Pop (7, E). Stale. Skip."
+      - step: 24
+        kind: extractMin
+        payload: { w: 8, v: F, pq_size: 5 }
+        narration: "Pop (8, F). Cheapest crossing edge; absorb."
+      - step: 25
+        kind: acceptEdge
+        payload: { edge: { u: D, v: F, w: 8 } }
+        state: { in_mst: [A, B, C, D, E, F], total: 21 }
+        narration: "Absorb edge D-F (8). Total = 21. The (9, F) entry is now stale."
+      - step: 26
+        kind: pushFrontier
+        payload: { from: F, to: G, w: 11, pq_size: 6 }
+        narration: "Frontier scan from F. Push (w=11, G). [D, E in MST, skipped.]"
+      - step: 27
+        kind: rejectEdge
+        payload: { edge: { u: E, v: F, w: 9 }, reason: "stale" }
+        narration: "Pop (9, F). Stale. Skip."
+      - step: 28
+        kind: extractMin
+        payload: { w: 10, v: G, pq_size: 5 }
+        narration: "Pop (10, G). Cheapest crossing edge; absorb."
+      - step: 29
+        kind: acceptEdge
+        payload: { edge: { u: E, v: G, w: 10 } }
+        state: { in_mst: [A, B, C, D, E, F, G], total: 31 }
+        narration: "Absorb edge E-G (10). Total = 31. All seven vertices in the MST."
+      - step: 30
+        kind: answer
+        payload: { total: 31, mst_edges: [{u:A,v:B,w:1},{u:B,v:C,w:2},{u:C,v:D,w:4},{u:D,v:E,w:6},{u:D,v:F,w:8},{u:E,v:G,w:10}] }
+        narration: "Done. MST = {A-B 1, B-C 2, C-D 4, D-E 6, D-F 8, E-G 10}. Total weight 31. Absorption order: A, B, C, D, E, F, G. Same MST as Kruskal; different construction path."
+
+notes: |
+  Two panels, same canonical 7-vertex graph (distinct integer weights so
+  the MST is unique). When run synchronized, the orchestrator advances
+  both panels at the rate of edges absorbed: every acceptEdge in either
+  panel triggers both to advance to the next accept. The visual lesson
+  is that the two algorithms reach the same MST through different
+  orders. Kruskal absorbs A-B (1) first because it is globally cheapest;
+  Prim absorbs A-B (1) first because it is the cheapest edge crossing
+  the cut from start vertex A. They agree on the first edge, but the
+  agreement is a coincidence; on the second pick Kruskal takes B-C (2,
+  globally cheapest unrejected) while Prim's heap also surfaces (2, C)
+  as the next minimum from the {A,B} frontier - in this graph both
+  framings happen to align. The interesting visual is the *rejected*
+  edges: Kruskal queries and rejects four edges (A-C 3, B-D 5, C-E 7,
+  E-F 9) via union-find; Prim's heap also encounters those weights but
+  as stale duplicate vertex entries (3-C, 5-D, 7-E, 9-F) which are
+  skipped via the in_mst check. The two flavors of "this edge does not
+  belong in the MST" are visually distinct but algorithmically twin.

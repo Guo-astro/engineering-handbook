@@ -1,0 +1,183 @@
+# Quicksort partition (Lomuto) — chapter 2.4 dedicated widget
+# Level 2 zoom-in on a single Lomuto partition pass. Where w-05 panel-b shows
+# the recursion tree at speed (one step per partition), this widget freezes
+# on one partition and animates the i/j sweep cell-by-cell so the loop
+# invariant arr[lo..i] <= pivot < arr[i+1..j-1] is visible at every step.
+# Design rationale: Lomuto's correctness depends on three indices that move
+# at different rates; without seeing them step-by-step, readers translate
+# the seven-line code into wrong implementations. This widget IS the proof.
+
+id: w-06-quicksort-partition
+title: "Quicksort partition (Lomuto, step-by-step)"
+type: single-panel
+level: 2
+modes: [preset, randomize, edit]
+
+caps:
+  array_length: { min: 4, max: 12 }
+  values: { min: -99, max: 99 }
+  step_buffer: 30
+
+commands:
+  - name: setPivot
+    payload: { hi: 'integer', pivot_value: 'integer' }
+    description: "Mark arr[hi] as pivot (reddish-purple). Initialize i = lo - 1."
+  - name: scan
+    payload: { j: 'integer', value: 'integer', verdict: 'le_pivot | gt_pivot' }
+    description: "Advance j; compare arr[j] to pivot. verdict colors the cell."
+  - name: advanceI
+    payload: { i: 'integer' }
+    description: "On le_pivot, advance i by one to open the next swap slot."
+  - name: swapInto
+    payload: { i: 'integer', j: 'integer' }
+    description: "Swap arr[i] with arr[j] to extend the <= pivot prefix."
+  - name: placePivot
+    payload: { i_plus_one: 'integer', hi: 'integer' }
+    description: "Final swap: arr[i+1] with arr[hi]. Pivot lands at i+1."
+  - name: answer
+    payload: { partition_index: 'integer', arr: 'integer[]' }
+    description: "Partition complete; left band <= pivot, right band > pivot."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-06-quicksort-partition-fallback.svg
+  keyframes_used: [0, "n_steps/4", "n_steps/2", "n_steps-1"]
+
+panels:
+  default:
+    chapter: "2.4"
+    label: "Lomuto partition (one pass, cell-by-cell)"
+    canonical_input: |
+      arr = [5, 2, 4, 1, 3, 6]
+      lo = 0
+      hi = 5
+    presets:
+      - id: canonical
+        label: "Canonical (pivot=6, four elements <=, one element >)"
+        input: { arr: [5, 2, 4, 1, 3, 6], lo: 0, hi: 5 }
+      - id: all-equal
+        label: "All-equal input (Lomuto's Theta(n^2) trap)"
+        input: { arr: [5, 5, 5, 5, 5, 5], lo: 0, hi: 5 }
+      - id: pivot-is-min
+        label: "Pivot is minimum (one-sided split, no swaps)"
+        input: { arr: [5, 4, 3, 2, 1], lo: 0, hi: 4 }
+      - id: pivot-is-max
+        label: "Pivot is maximum (every comparison passes)"
+        input: { arr: [1, 2, 3, 4, 5], lo: 0, hi: 4 }
+    n_steps: 16
+    # Trace for canonical input arr = [5, 2, 4, 1, 3, 6], pivot = 6.
+    # Walks j from 0 to 4 with five compareSum events; four are le_pivot
+    # (so i advances four times); the swaps are no-ops because i tracks
+    # j when everything is <= pivot, so swap(arr[i], arr[j]) hits the
+    # same cell. Final placePivot is also a no-op (pivot already at hi).
+    # The point: the reader watches the loop invariant hold all the way
+    # through, then does one more partition with a real swap to see it.
+    keyframes:
+      - step: 0
+        kind: init
+        state: { arr: [5, 2, 4, 1, 3, 6], lo: 0, hi: 5, i: -1, j: null }
+        narration: "Lomuto partition on arr[0..5]. The pivot will be arr[hi]=6. Track three indices: i (boundary of the <= pivot prefix), j (the scanner), and hi (the pivot's home until the final swap)."
+      - step: 1
+        kind: setPivot
+        payload: { hi: 5, pivot_value: 6 }
+        state: { arr: [5, 2, 4, 1, 3, 6], lo: 0, hi: 5, i: -1, j: null, pivot: 6 }
+        narration: "Pivot is arr[5]=6 (reddish-purple). i = lo - 1 = -1; the <= pivot prefix is empty."
+
+      - step: 2
+        kind: scan
+        payload: { j: 0, value: 5, verdict: le_pivot }
+        state: { arr: [5, 2, 4, 1, 3, 6], i: -1, j: 0, pivot: 6 }
+        narration: "j=0: arr[0]=5 <= 6. Advance i and swap arr[i] with arr[j]."
+      - step: 3
+        kind: advanceI
+        payload: { i: 0 }
+        state: { arr: [5, 2, 4, 1, 3, 6], i: 0, j: 0, pivot: 6 }
+        narration: "i becomes 0."
+      - step: 4
+        kind: swapInto
+        payload: { i: 0, j: 0 }
+        state: { arr: [5, 2, 4, 1, 3, 6], i: 0, j: 0, pivot: 6 }
+        narration: "swap(arr[0], arr[0]) is a no-op. arr[0..0] = [5] is the <= pivot prefix."
+
+      - step: 5
+        kind: scan
+        payload: { j: 1, value: 2, verdict: le_pivot }
+        state: { arr: [5, 2, 4, 1, 3, 6], i: 0, j: 1, pivot: 6 }
+        narration: "j=1: arr[1]=2 <= 6."
+      - step: 6
+        kind: advanceI
+        payload: { i: 1 }
+        state: { arr: [5, 2, 4, 1, 3, 6], i: 1, j: 1, pivot: 6 }
+        narration: "i becomes 1."
+      - step: 7
+        kind: swapInto
+        payload: { i: 1, j: 1 }
+        state: { arr: [5, 2, 4, 1, 3, 6], i: 1, j: 1, pivot: 6 }
+        narration: "swap(arr[1], arr[1]). arr[0..1] = [5, 2] is the <= pivot prefix."
+
+      - step: 8
+        kind: scan
+        payload: { j: 2, value: 4, verdict: le_pivot }
+        state: { arr: [5, 2, 4, 1, 3, 6], i: 1, j: 2, pivot: 6 }
+        narration: "j=2: arr[2]=4 <= 6."
+      - step: 9
+        kind: advanceI
+        payload: { i: 2 }
+        state: { arr: [5, 2, 4, 1, 3, 6], i: 2, j: 2, pivot: 6 }
+        narration: "i becomes 2; swap(arr[2], arr[2]) is a no-op. Prefix grows to [5, 2, 4]."
+
+      - step: 10
+        kind: scan
+        payload: { j: 3, value: 1, verdict: le_pivot }
+        state: { arr: [5, 2, 4, 1, 3, 6], i: 2, j: 3, pivot: 6 }
+        narration: "j=3: arr[3]=1 <= 6."
+      - step: 11
+        kind: advanceI
+        payload: { i: 3 }
+        state: { arr: [5, 2, 4, 1, 3, 6], i: 3, j: 3, pivot: 6 }
+        narration: "i becomes 3; swap(arr[3], arr[3]). Prefix [5, 2, 4, 1]."
+
+      - step: 12
+        kind: scan
+        payload: { j: 4, value: 3, verdict: le_pivot }
+        state: { arr: [5, 2, 4, 1, 3, 6], i: 3, j: 4, pivot: 6 }
+        narration: "j=4: arr[4]=3 <= 6."
+      - step: 13
+        kind: advanceI
+        payload: { i: 4 }
+        state: { arr: [5, 2, 4, 1, 3, 6], i: 4, j: 4, pivot: 6 }
+        narration: "i becomes 4; swap(arr[4], arr[4]). Scan complete; arr[lo..i] = [5, 2, 4, 1, 3] holds every element <= pivot."
+
+      - step: 14
+        kind: placePivot
+        payload: { i_plus_one: 5, hi: 5 }
+        state: { arr: [5, 2, 4, 1, 3, 6], i: 4, j: 5, pivot: 6 }
+        narration: "Final step: swap arr[i+1]=arr[5] with arr[hi]=arr[5]. Pivot 6 already sits in its final slot, but the swap runs unconditionally for code simplicity."
+
+      - step: 15
+        kind: answer
+        payload: { partition_index: 5, arr: [5, 2, 4, 1, 3, 6] }
+        state: { arr: [5, 2, 4, 1, 3, 6], partition_index: 5, sorted: false }
+        narration: "Partition complete. Pivot 6 lands at index 5; arr[0..4] <= 6 and arr[6..hi] (empty here) > 6. The recursion will descend on arr[0..4] next."
+
+notes: |
+  Why this widget is Level 2 rather than Level 1: Lomuto's correctness depends
+  on the loop invariant arr[lo..i] <= pivot < arr[i+1..j-1], with three
+  indices (i, j, hi) moving at different rates. A Level 1 widget that only
+  shows the result of partition (a recoloring of the array) hides the
+  invariant. The Level 2 view freezes one partition and animates every i/j
+  movement so the reader sees why arr[i+1..j-1] is exactly the > pivot band
+  at every step. The partition pass is the single most-cited "off-by-one
+  or you're wrong" algorithm in the chapter; it earns the Level 2 zoom.
+
+  Three of the four presets are pedagogical traps:
+  - all-equal: every comparison succeeds, i tracks j, the partition splits
+    into a (n-1)-element <= side and an empty > side. This is Lomuto's
+    Theta(n^2) trap on duplicates that the chapter teaches three-way
+    partitioning to solve.
+  - pivot-is-min: every comparison fails (no element <= a value strictly
+    less than every other). i stays at -1; the final swap places the pivot
+    at index 0; recursion descends on the (n-1)-element right side. The
+    canonical "one-sided split that defeats naive Lomuto on sorted input."
+  - pivot-is-max: every comparison succeeds; i tracks j; final swap is a
+    no-op. The mirror of pivot-is-min; same one-sided split pathology.

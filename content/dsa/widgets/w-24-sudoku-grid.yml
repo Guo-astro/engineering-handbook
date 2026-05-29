@@ -1,0 +1,201 @@
+# Sudoku grid (constraint-propagation backtracking with bitmask + MRV)
+# Single-panel chapter widget — chapter 7.4 mounts panel-default.
+
+id: w-24-sudoku-grid
+title: "Sudoku solver (constraint propagation + MRV)"
+type: single-panel
+level: 1
+modes: [preset]
+
+caps:
+  grid_size: { fixed: 4 }      # canonical preset is 4x4 mini-Sudoku
+  trace_length: { max: 60 }    # 33-step canonical; well under widget-architecture.md §6.11 cap
+
+commands:
+  - name: initClue
+    payload: { cell: 'string', digit: 'integer' }
+    description: "Highlight a clue cell at init; clear its bit from row/col/box masks."
+  - name: scan
+    payload: { empties: 'integer', min_count: 'integer', mrv_cell: 'array' }
+    description: "Update the status panel with empty count and the MRV pick."
+  - name: mrvPick
+    payload: { cell: 'string', candidates: 'array', count: 'integer' }
+    description: "Pulse the MRV-selected cell; show its candidate set in the side panel."
+  - name: place
+    payload: { cell: 'string', digit: 'integer' }
+    description: "Write digit to the cell; XOR the bit out of row/col/box masks."
+  - name: propagate
+    payload: { affected_peers: 'integer' }
+    description: "Update the status line with the count of peers whose candidates shrank."
+  - name: solved
+    description: "Mark every cell green; render the completed grid."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-24-sudoku-grid-fallback.svg
+  keyframes_used: [0, 6, 16, 32]
+  # 0: initial board with 4 clues; 6: first MRV pick at (0,0) with candidates {1,4};
+  # 16: mid-solve (~half filled, forced cascade visible); 32: solved board.
+
+panels:
+  default:
+    chapter: "7.4"
+    label: "4x4 mini-Sudoku (constraint propagation + MRV)"
+    canonical_input: |
+      board = [
+        [".", "2", ".", "."],
+        ["3", ".", ".", "."],
+        [".", ".", ".", "4"],
+        [".", ".", "1", "."]
+      ]
+    n_steps: 33
+    keyframes:
+      - step: 0
+        kind: init
+        state: { l: null, board_state: "empty" }
+        narration: "Empty 4x4 grid; every cell starts with candidates {1,2,3,4}."
+      - step: 1
+        kind: initClue
+        payload: { cell: "cell-0-1", digit: 2 }
+        narration: "Clue 2 at (0,1); clear bit 2 from row 0, col 1, box 0."
+      - step: 2
+        kind: initClue
+        payload: { cell: "cell-1-0", digit: 3 }
+        narration: "Clue 3 at (1,0); clear bit 3 from row 1, col 0, box 0."
+      - step: 3
+        kind: initClue
+        payload: { cell: "cell-2-3", digit: 4 }
+        narration: "Clue 4 at (2,3); clear bit 4 from row 2, col 3, box 3."
+      - step: 4
+        kind: initClue
+        payload: { cell: "cell-3-2", digit: 1 }
+        narration: "Clue 1 at (3,2); clear bit 1 from row 3, col 2, box 3."
+      - step: 5
+        kind: scan
+        payload: { empties: 12, min_count: 2, mrv_cell: [0, 0] }
+        narration: "Scan 12 empties; minimum candidate count = 2 at (0,0)."
+      - step: 6
+        kind: mrvPick
+        payload: { cell: "cell-0-0", candidates: [1, 4], count: 2 }
+        narration: "MRV pick: cell (0,0) with 2 candidates {1,4}; branch on 1 first."
+      - step: 7
+        kind: place
+        payload: { cell: "cell-0-0", digit: 1 }
+        narration: "Try 1 at (0,0); propagate (XOR bit 1 from row 0, col 0, box 0)."
+      - step: 8
+        kind: propagate
+        payload: { affected_peers: 5 }
+        narration: "After placing 1 at (0,0): 5 peers had bit 1 set; their candidate sets shrink."
+      - step: 9
+        kind: scan
+        payload: { empties: 11, min_count: 1, mrv_cell: [0, 3] }
+        narration: "Scan 11 empties; minimum candidate count = 1 at (0,3), forced."
+      - step: 10
+        kind: mrvPick
+        payload: { cell: "cell-0-3", candidates: [3], count: 1 }
+        narration: "MRV pick: cell (0,3), only one legal digit, 3."
+      - step: 11
+        kind: place
+        payload: { cell: "cell-0-3", digit: 3 }
+        narration: "Place 3 at (0,3); propagate."
+      - step: 12
+        kind: scan
+        payload: { empties: 10, min_count: 1, mrv_cell: [0, 2] }
+        narration: "Scan; cell (0,2) is now forced to 4."
+      - step: 13
+        kind: place
+        payload: { cell: "cell-0-2", digit: 4 }
+        narration: "Place 4 at (0,2); propagate."
+      - step: 14
+        kind: scan
+        payload: { empties: 9, min_count: 1, mrv_cell: [1, 1] }
+        narration: "Scan; cell (1,1) is now forced to 4."
+      - step: 15
+        kind: place
+        payload: { cell: "cell-1-1", digit: 4 }
+        narration: "Place 4 at (1,1); propagate."
+      - step: 16
+        kind: scan
+        payload: { empties: 8, min_count: 1, mrv_cell: [1, 2] }
+        narration: "Scan; cell (1,2) is now forced to 2."
+      - step: 17
+        kind: place
+        payload: { cell: "cell-1-2", digit: 2 }
+        narration: "Place 2 at (1,2); propagate."
+      - step: 18
+        kind: scan
+        payload: { empties: 7, min_count: 1, mrv_cell: [1, 3] }
+        narration: "Scan; cell (1,3) is forced to 1."
+      - step: 19
+        kind: place
+        payload: { cell: "cell-1-3", digit: 1 }
+        narration: "Place 1 at (1,3); row 1 complete."
+      - step: 20
+        kind: scan
+        payload: { empties: 6, min_count: 1, mrv_cell: [2, 0] }
+        narration: "Scan; cell (2,0) forced to 2."
+      - step: 21
+        kind: place
+        payload: { cell: "cell-2-0", digit: 2 }
+        narration: "Place 2 at (2,0)."
+      - step: 22
+        kind: scan
+        payload: { empties: 5, min_count: 1, mrv_cell: [2, 2] }
+        narration: "Scan; cell (2,2) forced to 3."
+      - step: 23
+        kind: place
+        payload: { cell: "cell-2-2", digit: 3 }
+        narration: "Place 3 at (2,2)."
+      - step: 24
+        kind: scan
+        payload: { empties: 4, min_count: 1, mrv_cell: [2, 1] }
+        narration: "Scan; cell (2,1) forced to 1."
+      - step: 25
+        kind: place
+        payload: { cell: "cell-2-1", digit: 1 }
+        narration: "Place 1 at (2,1); row 2 complete."
+      - step: 26
+        kind: scan
+        payload: { empties: 3, min_count: 1, mrv_cell: [3, 0] }
+        narration: "Scan; cell (3,0) forced to 4."
+      - step: 27
+        kind: place
+        payload: { cell: "cell-3-0", digit: 4 }
+        narration: "Place 4 at (3,0)."
+      - step: 28
+        kind: scan
+        payload: { empties: 2, min_count: 1, mrv_cell: [3, 1] }
+        narration: "Scan; cell (3,1) forced to 3."
+      - step: 29
+        kind: place
+        payload: { cell: "cell-3-1", digit: 3 }
+        narration: "Place 3 at (3,1)."
+      - step: 30
+        kind: scan
+        payload: { empties: 1, min_count: 1, mrv_cell: [3, 3] }
+        narration: "Scan; cell (3,3) forced to 2, last empty."
+      - step: 31
+        kind: place
+        payload: { cell: "cell-3-3", digit: 2 }
+        narration: "Place 2 at (3,3)."
+      - step: 32
+        kind: solved
+        narration: "No empty cells remain; solution found in 0 backtracks."
+
+selector_default: default
+
+notes: |
+  Single-panel chapter widget for 7.4. Animates the canonical 4x4
+  mini-Sudoku trace verbatim (33 frames after
+  compressing the trailing forced-fill cascade). The 4x4 preset
+  preserves the row/col/box constraint structure of the 9x9 puzzle
+  while keeping the trace under 35 frames so it follows on a phone
+  screen. After the first MRV branch at (0,0), every subsequent
+  cell is forced to 1 candidate; the search tree degenerates to a
+  chain. This is Norvig's observation in miniature: once
+  propagation is in place, search becomes trivial on
+  well-conditioned puzzles.
+  Trace verified deterministic via Python ref re-run (
+  Check-4); place sequence: 1@(0,0), 3@(0,3), 4@(0,2), 4@(1,1),
+  2@(1,2), 1@(1,3), 2@(2,0), 3@(2,2), 1@(2,1), 4@(3,0), 3@(3,1),
+  2@(3,3).

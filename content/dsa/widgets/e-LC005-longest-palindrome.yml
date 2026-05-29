@@ -1,0 +1,115 @@
+# Editorial widget — LC 5 Longest Palindromic Substring
+# Editorial widgets animate ONE specific signature problem at fixed input.
+# Preset-only; no randomize, no edit.
+
+id: e-LC005-longest-palindrome
+title: "Longest Palindromic Substring (LC 5) — expand around centers"
+type: editorial-single-panel
+level: 1
+modes: [preset]
+
+# Editorial widgets do not expose user input — the canonical input is the lesson.
+caps:
+  string_length: { fixed: 5 }       # exactly the canonical "babad"
+
+commands:
+  - name: centerIter
+    payload: { i: 'integer', char: 'string' }
+    description: "Mark the new candidate center index for the next two expansions."
+  - name: expandInit
+    payload: { kind: "'odd' | 'even'", left: 'integer', right: 'integer' }
+    description: "Begin an expansion from (left, right). Odd centers start with left == right."
+  - name: expandMatch
+    payload: { left: 'integer', right: 'integer', leftChar: 'string', rightChar: 'string' }
+    description: "s[left] == s[right]; the window is a palindrome, push outward."
+  - name: expandMismatch
+    payload: { left: 'integer', right: 'integer', leftChar: 'string', rightChar: 'string' }
+    description: "s[left] != s[right]; loop terminates one step past the last match."
+  - name: expandBound
+    payload: { left: 'integer', right: 'integer' }
+    description: "Pointer ran off the string; loop terminates."
+  - name: expandResult
+    payload: { kind: "'odd' | 'even'", resultL: 'integer', resultR: 'integer', substr: 'string' }
+    description: "Report the maximal palindrome (left+1, right-1) for this center."
+  - name: bestUpdate
+    payload: { bestL: 'integer', bestR: 'integer', substr: 'string' }
+    description: "New strictly-longer palindrome; update the running best."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/e-LC005-longest-palindrome-fallback.svg
+  keyframes_used: [0, 12, 14, 15, 24, 44]
+  # init / first match inside the bab expansion / boundary stop / first best-update
+  # / aba expansion ties (no update) / final answer
+
+panels:
+  default:
+    chapter: "9.10"
+    primary_chapter: part-9-dynamic-programming/10-palindrome-dp
+    label: "Longest Palindromic Substring — expand around centers"
+    canonical_input: |
+      s = "babad"
+    # Why "babad" not "cbbd": "babad" exercises both odd-length wins (bab at i=1)
+    # AND a same-length tie that strict-> rejects (aba at i=2). It surfaces the
+    # tie-break invariant that "cbbd" cannot show. "cbbd" is a secondary preset.
+    presets: []                      # editorial widgets are preset-as-canonical-input
+    n_steps: 45
+    keyframes:
+      - { step: 0,  kind: init,           state: { bestL: 0, bestR: 0 }, narration: "Best palindrome initialized to s[0..0]." }
+      - { step: 1,  kind: centerIter,     payload: { i: 0, char: "b" }, state: { bestL: 0, bestR: 0 }, narration: "Consider centers at index 0." }
+      - { step: 2,  kind: expandInit,     payload: { kind: "odd",  left: 0, right: 0 }, narration: "Start odd expansion at i=0." }
+      - { step: 3,  kind: expandMatch,    payload: { left: 0, right: 0, leftChar: "b", rightChar: "b" }, narration: "s[0]='b' == s[0]; extend." }
+      - { step: 4,  kind: expandBound,    payload: { left: -1, right: 1 }, narration: "Left pointer fell off the string; stop." }
+      - { step: 5,  kind: expandResult,   payload: { kind: "odd",  resultL: 0, resultR: 0, substr: "b" }, narration: "Odd center at 0: \"b\", length 1." }
+      - { step: 6,  kind: expandInit,     payload: { kind: "even", left: 0, right: 1 }, narration: "Start even expansion between 0 and 1." }
+      - { step: 7,  kind: expandMismatch, payload: { left: 0, right: 1, leftChar: "b", rightChar: "a" }, narration: "s[0]='b' != s[1]='a'; stop." }
+      - { step: 8,  kind: expandResult,   payload: { kind: "even", resultL: 1, resultR: 0, substr: "" }, narration: "Even center between 0,1: empty." }
+      - { step: 9,  kind: centerIter,     payload: { i: 1, char: "a" }, state: { bestL: 0, bestR: 0 }, narration: "Consider centers at index 1." }
+      - { step: 10, kind: expandInit,     payload: { kind: "odd",  left: 1, right: 1 }, narration: "Start odd expansion at i=1." }
+      - { step: 11, kind: expandMatch,    payload: { left: 1, right: 1, leftChar: "a", rightChar: "a" }, narration: "s[1]='a' == s[1]; extend." }
+      - { step: 12, kind: expandMatch,    payload: { left: 0, right: 2, leftChar: "b", rightChar: "b" }, narration: "s[0]='b' == s[2]='b'; extend." }
+      - { step: 13, kind: expandBound,    payload: { left: -1, right: 3 }, narration: "Left pointer fell off; stop." }
+      - { step: 14, kind: expandResult,   payload: { kind: "odd",  resultL: 0, resultR: 2, substr: "bab" }, narration: "Odd center at 1: \"bab\", length 3." }
+      - { step: 15, kind: bestUpdate,     payload: { bestL: 0, bestR: 2, substr: "bab" }, state: { bestL: 0, bestR: 2 }, narration: "New longest: \"bab\"." }
+      - { step: 16, kind: expandInit,     payload: { kind: "even", left: 1, right: 2 }, narration: "Start even expansion between 1 and 2." }
+      - { step: 17, kind: expandMismatch, payload: { left: 1, right: 2, leftChar: "a", rightChar: "b" }, narration: "s[1]='a' != s[2]='b'; stop." }
+      - { step: 18, kind: expandResult,   payload: { kind: "even", resultL: 2, resultR: 1, substr: "" }, narration: "Even center between 1,2: empty." }
+      - { step: 19, kind: centerIter,     payload: { i: 2, char: "b" }, state: { bestL: 0, bestR: 2 }, narration: "Consider centers at index 2." }
+      - { step: 20, kind: expandInit,     payload: { kind: "odd",  left: 2, right: 2 }, narration: "Start odd expansion at i=2." }
+      - { step: 21, kind: expandMatch,    payload: { left: 2, right: 2, leftChar: "b", rightChar: "b" }, narration: "s[2]='b' == s[2]; extend." }
+      - { step: 22, kind: expandMatch,    payload: { left: 1, right: 3, leftChar: "a", rightChar: "a" }, narration: "s[1]='a' == s[3]='a'; extend." }
+      - { step: 23, kind: expandMismatch, payload: { left: 0, right: 4, leftChar: "b", rightChar: "d" }, narration: "s[0]='b' != s[4]='d'; stop." }
+      - { step: 24, kind: expandResult,   payload: { kind: "odd",  resultL: 1, resultR: 3, substr: "aba" }, narration: "Odd center at 2: \"aba\", length 3. Ties \"bab\"; strict > keeps \"bab\"." }
+      - { step: 25, kind: expandInit,     payload: { kind: "even", left: 2, right: 3 }, narration: "Start even expansion between 2 and 3." }
+      - { step: 26, kind: expandMismatch, payload: { left: 2, right: 3, leftChar: "b", rightChar: "a" }, narration: "s[2]='b' != s[3]='a'; stop." }
+      - { step: 27, kind: expandResult,   payload: { kind: "even", resultL: 3, resultR: 2, substr: "" }, narration: "Even center between 2,3: empty." }
+      - { step: 28, kind: centerIter,     payload: { i: 3, char: "a" }, state: { bestL: 0, bestR: 2 }, narration: "Consider centers at index 3." }
+      - { step: 29, kind: expandInit,     payload: { kind: "odd",  left: 3, right: 3 }, narration: "Start odd expansion at i=3." }
+      - { step: 30, kind: expandMatch,    payload: { left: 3, right: 3, leftChar: "a", rightChar: "a" }, narration: "s[3]='a' == s[3]; extend." }
+      - { step: 31, kind: expandMismatch, payload: { left: 2, right: 4, leftChar: "b", rightChar: "d" }, narration: "s[2]='b' != s[4]='d'; stop." }
+      - { step: 32, kind: expandResult,   payload: { kind: "odd",  resultL: 3, resultR: 3, substr: "a" }, narration: "Odd center at 3: \"a\", length 1." }
+      - { step: 33, kind: expandInit,     payload: { kind: "even", left: 3, right: 4 }, narration: "Start even expansion between 3 and 4." }
+      - { step: 34, kind: expandMismatch, payload: { left: 3, right: 4, leftChar: "a", rightChar: "d" }, narration: "s[3]='a' != s[4]='d'; stop." }
+      - { step: 35, kind: expandResult,   payload: { kind: "even", resultL: 4, resultR: 3, substr: "" }, narration: "Even center between 3,4: empty." }
+      - { step: 36, kind: centerIter,     payload: { i: 4, char: "d" }, state: { bestL: 0, bestR: 2 }, narration: "Consider centers at index 4." }
+      - { step: 37, kind: expandInit,     payload: { kind: "odd",  left: 4, right: 4 }, narration: "Start odd expansion at i=4." }
+      - { step: 38, kind: expandMatch,    payload: { left: 4, right: 4, leftChar: "d", rightChar: "d" }, narration: "s[4]='d' == s[4]; extend." }
+      - { step: 39, kind: expandBound,    payload: { left: 3, right: 5 }, narration: "Right pointer fell off; stop." }
+      - { step: 40, kind: expandResult,   payload: { kind: "odd",  resultL: 4, resultR: 4, substr: "d" }, narration: "Odd center at 4: \"d\", length 1." }
+      - { step: 41, kind: expandInit,     payload: { kind: "even", left: 4, right: 5 }, narration: "Start even expansion between 4 and 5." }
+      - { step: 42, kind: expandBound,    payload: { left: 4, right: 5 }, narration: "Right pointer off; stop." }
+      - { step: 43, kind: expandResult,   payload: { kind: "even", resultL: 5, resultR: 4, substr: "" }, narration: "Even center between 4,5: empty." }
+      - { step: 44, kind: terminate,      state: { bestL: 0, bestR: 2, result: "bab" }, narration: "Return \"bab\". Centers visited: 9 (5 odd + 4 even)." }
+
+lc_id: 5
+difficulty: medium
+algorithm: expand-around-centers
+
+notes: |
+  Animates the optimal expand-around-centers algorithm at LC 5's n=1000 ceiling.
+  The 2D DP table is NOT animated; expand-around-centers is the recommended
+  interview answer.
+  Trace transcribed verbatim step buffer (45 steps, deterministic).
+  The pedagogically critical moment is step 24: \"aba\" ties \"bab\" at length 3,
+  and the strict-> guard rejects the update. A reader who switches to >=
+  observes \"aba\" as the answer instead; LC accepts both.

@@ -1,0 +1,458 @@
+# Topological sort — Kahn's vs DFS post-order reverse
+# Dual-panel shared widget — chapter 8.4 (Kahn's, panel-kahn) and chapter
+# 8.5 (DFS post-order reverse, panel-dfs). Both panels share the same
+# input DAG so the reader steps the algorithms side-by-side on identical
+# graph state and observes where the two valid topological orders diverge.
+
+id: w-27-topological-sort-kahn
+title: "Topological sort (Kahn's vs DFS post-order)"
+type: dual-panel-shared
+level: 1
+modes: [preset, randomize, edit]
+
+caps:
+  node_count: { min: 3, max: 12 }      # widget-decision-rule.md §3 graph cap
+  edge_count: { min: 0, max: 24 }
+  steps: { hard_max: 50 }
+
+commands:
+  # Shared
+  - name: enter
+    payload: { v: "integer" }
+    description: "Highlight vertex v as the current focus."
+  - name: emit
+    payload: { v: "integer", into: "queue|post" }
+    description: "Vertex v is appended to the algorithm's output list."
+  # Kahn-specific (panel-kahn)
+  - name: dropEdge
+    payload: { from: "integer", to: "integer", indegreeAfter: "integer" }
+    description: "Indegree of `to` decreases by one as `from`'s outgoing edge is removed."
+  - name: enqueue
+    payload: { v: "integer" }
+    description: "Vertex v reaches indegree 0 and joins the queue."
+  - name: dequeue
+    payload: { v: "integer" }
+    description: "Vertex v is taken from the queue head."
+  # DFS-specific (panel-dfs)
+  - name: colorFlip
+    payload: { v: "integer", from: "WHITE|GRAY|BLACK", to: "WHITE|GRAY|BLACK" }
+    description: "Vertex v transitions between the three DFS colors."
+  - name: explore
+    payload: { from: "integer", to: "integer" }
+    description: "DFS examines the edge (from, to) and recurses if `to` is WHITE."
+  - name: skipBlack
+    payload: { from: "integer", to: "integer" }
+    description: "DFS skips a cross/forward edge to an already-finished vertex."
+  - name: backEdge
+    payload: { from: "integer", to: "integer" }
+    description: "DFS encounters a GRAY successor; cycle detected."
+  - name: reverseList
+    payload: { post: "integer[]", topo: "integer[]" }
+    description: "Post-order list reversed in place to yield the topological order."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-27-topological-sort-kahn-fallback.svg
+  keyframes_used: [0, 8, 18, 22]   # init / mid-recursion / mid-post-order /
+                                   # answer
+
+panels:
+  panel-kahn:
+    chapter: "8.4"
+    label: "Kahn's algorithm (BFS, indegree elimination)"
+    canonical_input: |
+      n = 6
+      edges = [[0,1], [0,2], [1,3], [2,3], [2,4], [3,5], [4,5]]
+      # Same DAG as panel-dfs. Kahn's expected emit order: [0, 1, 2, 3, 4, 5].
+    presets:
+      - id: canonical
+        label: "Canonical 6-node DAG (chapter 8.4 example)"
+        input:
+          n: 6
+          edges: [[0, 1], [0, 2], [1, 3], [2, 3], [2, 4], [3, 5], [4, 5]]
+      - id: chain-6
+        label: "Chain 0 -> 1 -> 2 -> 3 -> 4 -> 5"
+        input:
+          n: 6
+          edges: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]]
+      - id: star-6
+        label: "Star: 0 -> 1, 2, 3, 4, 5"
+        input:
+          n: 6
+          edges: [[0, 1], [0, 2], [0, 3], [0, 4], [0, 5]]
+      - id: cycle-3
+        label: "3-vertex cycle (cycle detection)"
+        input:
+          n: 3
+          edges: [[0, 1], [1, 2], [2, 0]]
+    n_steps: 16
+    # Trace transcribed from a single Kahn's-algorithm run on the canonical
+    # 6-node DAG. Adjacency is built in input order (0's outgoing edges
+    # are visited as 0->1 then 0->2; 2's as 2->3 then 2->4; etc.) and the
+    # queue is a plain FIFO, so the emit order is deterministic:
+    # [0, 1, 2, 3, 4, 5]. Color legend matches panel-dfs but is reused
+    # with Kahn's semantics: W = "still has incoming edges" (untouched);
+    # G = "indegree hit 0, sitting in queue, awaiting dequeue"; B =
+    # "emitted to the topological order". The first emission (vertex 0)
+    # is broken into granular steps so the reader internalizes the
+    # dequeue -> emit -> drop-each-out-edge -> maybe-enqueue rhythm; later
+    # emissions compress redundant actions into a single step.
+    keyframes:
+      - step: 0
+        kind: init
+        state:
+          color: [W, W, W, W, W, W]
+          indegree: [0, 1, 1, 2, 1, 2]
+          queue: []
+          emitted: []
+          current: null
+        narration: "Initial indegree[v] count for each vertex. Vertex 0 has indegree 0; everyone else still has incoming edges."
+      - step: 1
+        kind: enqueue
+        payload: { v: 0 }
+        state:
+          color: [G, W, W, W, W, W]
+          indegree: [0, 1, 1, 2, 1, 2]
+          queue: [0]
+          emitted: []
+          current: null
+        narration: "Scan all six indegrees. Only vertex 0 sits at 0. Enqueue 0; queue becomes [0]."
+      - step: 2
+        kind: dequeue
+        payload: { v: 0 }
+        state:
+          color: [G, W, W, W, W, W]
+          indegree: [0, 1, 1, 2, 1, 2]
+          queue: []
+          emitted: []
+          current: 0
+        narration: "Dequeue 0 from the queue head. Queue is now empty; vertex 0 is the current focus."
+      - step: 3
+        kind: emit
+        payload: { v: 0, into: queue }
+        state:
+          color: [B, W, W, W, W, W]
+          indegree: [0, 1, 1, 2, 1, 2]
+          queue: []
+          emitted: [0]
+          current: 0
+        narration: "Emit 0. emitted = [0]. Color flips G -> B. Now relax 0's outgoing edges."
+      - step: 4
+        kind: dropEdge
+        payload: { from: 0, to: 1, indegreeAfter: 0 }
+        state:
+          color: [B, W, W, W, W, W]
+          indegree: [0, 0, 1, 2, 1, 2]
+          queue: []
+          emitted: [0]
+          current: 0
+          consumed_edges: [[0, 1]]
+        narration: "Edge 0 -> 1 consumed. indegree[1] drops 1 -> 0."
+      - step: 5
+        kind: enqueue
+        payload: { v: 1 }
+        state:
+          color: [B, G, W, W, W, W]
+          indegree: [0, 0, 1, 2, 1, 2]
+          queue: [1]
+          emitted: [0]
+          current: 0
+          consumed_edges: [[0, 1]]
+        narration: "indegree[1] hit 0; enqueue 1. Queue = [1]."
+      - step: 6
+        kind: dropEdge
+        payload: { from: 0, to: 2, indegreeAfter: 0 }
+        state:
+          color: [B, G, W, W, W, W]
+          indegree: [0, 0, 0, 2, 1, 2]
+          queue: [1]
+          emitted: [0]
+          current: 0
+          consumed_edges: [[0, 1], [0, 2]]
+        narration: "Edge 0 -> 2 consumed. indegree[2] drops 1 -> 0."
+      - step: 7
+        kind: enqueue
+        payload: { v: 2 }
+        state:
+          color: [B, G, G, W, W, W]
+          indegree: [0, 0, 0, 2, 1, 2]
+          queue: [1, 2]
+          emitted: [0]
+          current: 0
+          consumed_edges: [[0, 1], [0, 2]]
+        narration: "indegree[2] hit 0; enqueue 2. Queue = [1, 2]. Vertex 0 fully processed."
+      - step: 8
+        kind: emit
+        payload: { v: 1, into: queue }
+        state:
+          color: [B, B, G, W, W, W]
+          indegree: [0, 0, 0, 1, 1, 2]
+          queue: [2]
+          emitted: [0, 1]
+          current: 1
+          consumed_edges: [[0, 1], [0, 2], [1, 3]]
+        narration: "Dequeue + emit 1. Drop edge 1 -> 3: indegree[3] drops 2 -> 1, still nonzero, no enqueue."
+      - step: 9
+        kind: emit
+        payload: { v: 2, into: queue }
+        state:
+          color: [B, B, B, W, W, W]
+          indegree: [0, 0, 0, 1, 1, 2]
+          queue: []
+          emitted: [0, 1, 2]
+          current: 2
+          consumed_edges: [[0, 1], [0, 2], [1, 3]]
+        narration: "Dequeue + emit 2. Queue is empty for a moment; about to relax 2's two outgoing edges."
+      - step: 10
+        kind: dropEdge
+        payload: { from: 2, to: 3, indegreeAfter: 0 }
+        state:
+          color: [B, B, B, G, W, W]
+          indegree: [0, 0, 0, 0, 1, 2]
+          queue: [3]
+          emitted: [0, 1, 2]
+          current: 2
+          consumed_edges: [[0, 1], [0, 2], [1, 3], [2, 3]]
+        narration: "Edge 2 -> 3 consumed. indegree[3] drops 1 -> 0; enqueue 3. Queue = [3]."
+      - step: 11
+        kind: dropEdge
+        payload: { from: 2, to: 4, indegreeAfter: 0 }
+        state:
+          color: [B, B, B, G, G, W]
+          indegree: [0, 0, 0, 0, 0, 2]
+          queue: [3, 4]
+          emitted: [0, 1, 2]
+          current: 2
+          consumed_edges: [[0, 1], [0, 2], [1, 3], [2, 3], [2, 4]]
+        narration: "Edge 2 -> 4 consumed. indegree[4] drops 1 -> 0; enqueue 4. Queue = [3, 4]."
+      - step: 12
+        kind: emit
+        payload: { v: 3, into: queue }
+        state:
+          color: [B, B, B, B, G, W]
+          indegree: [0, 0, 0, 0, 0, 1]
+          queue: [4]
+          emitted: [0, 1, 2, 3]
+          current: 3
+          consumed_edges: [[0, 1], [0, 2], [1, 3], [2, 3], [2, 4], [3, 5]]
+        narration: "Dequeue + emit 3. Drop edge 3 -> 5: indegree[5] drops 2 -> 1, still nonzero, no enqueue."
+      - step: 13
+        kind: emit
+        payload: { v: 4, into: queue }
+        state:
+          color: [B, B, B, B, B, G]
+          indegree: [0, 0, 0, 0, 0, 0]
+          queue: [5]
+          emitted: [0, 1, 2, 3, 4]
+          current: 4
+          consumed_edges: [[0, 1], [0, 2], [1, 3], [2, 3], [2, 4], [3, 5], [4, 5]]
+        narration: "Dequeue + emit 4. Drop edge 4 -> 5: indegree[5] drops 1 -> 0; enqueue 5. Queue = [5]."
+      - step: 14
+        kind: emit
+        payload: { v: 5, into: queue }
+        state:
+          color: [B, B, B, B, B, B]
+          indegree: [0, 0, 0, 0, 0, 0]
+          queue: []
+          emitted: [0, 1, 2, 3, 4, 5]
+          current: 5
+          consumed_edges: [[0, 1], [0, 2], [1, 3], [2, 3], [2, 4], [3, 5], [4, 5]]
+        narration: "Dequeue + emit 5. No outgoing edges; nothing left to relax. Queue empties."
+      - step: 15
+        kind: answer
+        payload: { result: [0, 1, 2, 3, 4, 5] }
+        state:
+          color: [B, B, B, B, B, B]
+          indegree: [0, 0, 0, 0, 0, 0]
+          queue: []
+          emitted: [0, 1, 2, 3, 4, 5]
+          current: null
+          consumed_edges: [[0, 1], [0, 2], [1, 3], [2, 3], [2, 4], [3, 5], [4, 5]]
+        narration: "|emitted| = |V| = 6: a valid topological order. Compare with panel-dfs's [0, 2, 4, 1, 3, 5]: same source 0, same sink 5, three middle positions different."
+
+  panel-dfs:
+    chapter: "8.5"
+    label: "DFS post-order reverse (recursive, three-color)"
+    canonical_input: |
+      n = 6
+      edges = [[0,1], [0,2], [1,3], [2,3], [2,4], [3,5], [4,5]]
+      # Same DAG as panel-kahn. DFS post-order: [5, 3, 1, 4, 2, 0].
+      # Reversed (topological order): [0, 2, 4, 1, 3, 5].
+      # Both panels agree on the unique source 0 and unique sink 5 and
+      # disagree on the middle three positions.
+    presets:
+      - id: canonical
+        label: "Canonical 6-node DAG (chapter 8.5 example)"
+        input:
+          n: 6
+          edges: [[0, 1], [0, 2], [1, 3], [2, 3], [2, 4], [3, 5], [4, 5]]
+      - id: chain-6
+        label: "Chain 0 -> 1 -> 2 -> 3 -> 4 -> 5"
+        input:
+          n: 6
+          edges: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]]
+      - id: star-6
+        label: "Star: 0 -> 1, 2, 3, 4, 5"
+        input:
+          n: 6
+          edges: [[0, 1], [0, 2], [0, 3], [0, 4], [0, 5]]
+      - id: cycle-3
+        label: "3-vertex cycle (back-edge detection)"
+        input:
+          n: 3
+          edges: [[0, 1], [1, 2], [2, 0]]
+    n_steps: 23
+    # Trace transcribed verbatim step buffer. Verified by
+    # re-running trace_dfs.py against the §2.2 Python reference; output is
+    # byte-identical given ascending-id top-level iteration and adjacency
+    # built in input order.
+    # Color legend: W = WHITE (unvisited), G = GRAY (on recursion stack),
+    # B = BLACK (finished, post-emitted).
+    keyframes:
+      - step: 0
+        kind: init
+        state: { color: [W, W, W, W, W, W], stack: [], post: [], current: null }
+        narration: "All six vertices WHITE. Recursion stack empty. Post-order list empty."
+      - step: 1
+        kind: enter
+        payload: { v: 0 }
+        state: { color: [W, W, W, W, W, W], stack: [], post: [], current: 0 }
+        narration: "Top-level loop reaches vertex 0. About to call DFS-visit(0)."
+      - step: 2
+        kind: colorFlip
+        payload: { v: 0, from: WHITE, to: GRAY }
+        state: { color: [G, W, W, W, W, W], stack: [0], post: [], current: 0 }
+        narration: "DFS-enter(0). color[0] = GRAY; push 0 onto the recursion stack."
+      - step: 3
+        kind: explore
+        payload: { from: 0, to: 1 }
+        state: { color: [G, W, W, W, W, W], stack: [0], post: [], current: 0 }
+        narration: "Explore edge 0 -> 1. color[1] is WHITE; recurse on 1."
+      - step: 4
+        kind: colorFlip
+        payload: { v: 1, from: WHITE, to: GRAY }
+        state: { color: [G, G, W, W, W, W], stack: [0, 1], post: [], current: 1 }
+        narration: "DFS-enter(1). color[1] = GRAY; recursion stack [0, 1]."
+      - step: 5
+        kind: explore
+        payload: { from: 1, to: 3 }
+        state: { color: [G, G, W, W, W, W], stack: [0, 1], post: [], current: 1 }
+        narration: "Explore edge 1 -> 3. color[3] is WHITE; recurse on 3."
+      - step: 6
+        kind: colorFlip
+        payload: { v: 3, from: WHITE, to: GRAY }
+        state: { color: [G, G, W, G, W, W], stack: [0, 1, 3], post: [], current: 3 }
+        narration: "DFS-enter(3). color[3] = GRAY; recursion stack [0, 1, 3]."
+      - step: 7
+        kind: explore
+        payload: { from: 3, to: 5 }
+        state: { color: [G, G, W, G, W, W], stack: [0, 1, 3], post: [], current: 3 }
+        narration: "Explore edge 3 -> 5. color[5] is WHITE; recurse on 5."
+      - step: 8
+        kind: colorFlip
+        payload: { v: 5, from: WHITE, to: GRAY }
+        state: { color: [G, G, W, G, W, G], stack: [0, 1, 3, 5], post: [], current: 5 }
+        narration: "DFS-enter(5). color[5] = GRAY; recursion stack [0, 1, 3, 5]. Vertex 5 has no outgoing edges."
+      - step: 9
+        kind: emit
+        payload: { v: 5, into: post }
+        state: { color: [G, G, W, G, W, B], stack: [0, 1, 3], post: [5], current: 5 }
+        narration: "DFS-exit(5). color[5] = BLACK; post.append(5). Pop 5 off the stack."
+      - step: 10
+        kind: emit
+        payload: { v: 3, into: post }
+        state: { color: [G, G, W, B, W, B], stack: [0, 1], post: [5, 3], current: 3 }
+        narration: "DFS-exit(3). All of 3's successors finished. color[3] = BLACK; post.append(3)."
+      - step: 11
+        kind: emit
+        payload: { v: 1, into: post }
+        state: { color: [G, B, W, B, W, B], stack: [0], post: [5, 3, 1], current: 1 }
+        narration: "DFS-exit(1). color[1] = BLACK; post.append(1). Stack [0]."
+      - step: 12
+        kind: explore
+        payload: { from: 0, to: 2 }
+        state: { color: [G, B, W, B, W, B], stack: [0], post: [5, 3, 1], current: 0 }
+        narration: "Back inside 0's frame. Explore edge 0 -> 2. color[2] is WHITE; recurse on 2."
+      - step: 13
+        kind: colorFlip
+        payload: { v: 2, from: WHITE, to: GRAY }
+        state: { color: [G, B, G, B, W, B], stack: [0, 2], post: [5, 3, 1], current: 2 }
+        narration: "DFS-enter(2). color[2] = GRAY; stack [0, 2]."
+      - step: 14
+        kind: skipBlack
+        payload: { from: 2, to: 3 }
+        state: { color: [G, B, G, B, W, B], stack: [0, 2], post: [5, 3, 1], current: 2 }
+        narration: "Edge 2 -> 3. color[3] is BLACK; skip (cross/forward edge to a finished vertex)."
+      - step: 15
+        kind: explore
+        payload: { from: 2, to: 4 }
+        state: { color: [G, B, G, B, W, B], stack: [0, 2], post: [5, 3, 1], current: 2 }
+        narration: "Edge 2 -> 4. color[4] is WHITE; recurse on 4."
+      - step: 16
+        kind: colorFlip
+        payload: { v: 4, from: WHITE, to: GRAY }
+        state: { color: [G, B, G, B, G, B], stack: [0, 2, 4], post: [5, 3, 1], current: 4 }
+        narration: "DFS-enter(4). color[4] = GRAY; stack [0, 2, 4]."
+      - step: 17
+        kind: skipBlack
+        payload: { from: 4, to: 5 }
+        state: { color: [G, B, G, B, G, B], stack: [0, 2, 4], post: [5, 3, 1], current: 4 }
+        narration: "Edge 4 -> 5. color[5] is BLACK; skip."
+      - step: 18
+        kind: emit
+        payload: { v: 4, into: post }
+        state: { color: [G, B, G, B, B, B], stack: [0, 2], post: [5, 3, 1, 4], current: 4 }
+        narration: "DFS-exit(4). color[4] = BLACK; post.append(4)."
+      - step: 19
+        kind: emit
+        payload: { v: 2, into: post }
+        state: { color: [G, B, B, B, B, B], stack: [0], post: [5, 3, 1, 4, 2], current: 2 }
+        narration: "DFS-exit(2). color[2] = BLACK; post.append(2)."
+      - step: 20
+        kind: emit
+        payload: { v: 0, into: post }
+        state: { color: [B, B, B, B, B, B], stack: [], post: [5, 3, 1, 4, 2, 0], current: 0 }
+        narration: "DFS-exit(0). color[0] = BLACK; post.append(0). Recursion stack empty; all vertices finished."
+      - step: 21
+        kind: reverseList
+        payload: { post: [5, 3, 1, 4, 2, 0], topo: [0, 2, 4, 1, 3, 5] }
+        state: { color: [B, B, B, B, B, B], stack: [], post: [5, 3, 1, 4, 2, 0], current: null }
+        narration: "Reverse the post-order list in place. [5, 3, 1, 4, 2, 0] becomes [0, 2, 4, 1, 3, 5]."
+      - step: 22
+        kind: answer
+        payload: { result: [0, 2, 4, 1, 3, 5] }
+        state: { color: [B, B, B, B, B, B], stack: [], post: [5, 3, 1, 4, 2, 0], current: null }
+        narration: "Topological order: [0, 2, 4, 1, 3, 5]. Compare with panel-kahn's emit order [0, 1, 2, 3, 4, 5]: same source 0, same sink 5, three middle positions different."
+
+selector_default: panel-dfs
+
+notes: |
+  Dual-panel comparison. Both panels share the same canonical input DAG
+  (6 nodes, 7 edges, single source 0, single sink 5), the same node
+  positions, and the same Wong palette so the only thing that differs
+  between the two panels is the algorithm's per-step state. Panel-kahn
+  (chapter 8.4, BFS-style indegree elimination) emits vertices in the
+  order [0, 1, 2, 3, 4, 5] in 16 steps. Panel-dfs (chapter 8.5, recursive
+  three-color post-order reverse) emits the post-order list
+  [5, 3, 1, 4, 2, 0] in 20 steps and then reverses it to
+  [0, 2, 4, 1, 3, 5] in step 21. Per `widget-decision-rule.md` §2
+  ("comparison widgets, step-through synchronized across panels") the
+  dual-panel player advances both panels in lockstep on each user
+  step; with panel-kahn at 16 steps and panel-dfs at 23 steps,
+  panel-kahn idles at its answer step for the last seven frames. The
+  idle is the intended pedagogical pause: Kahn finishes faster because
+  it never explores cross/forward edges to already-finished vertices,
+  while DFS does, and step 14 in panel-dfs is exactly such a skip.
+
+  Wong palette assignments (per `style-guide.md` "Color-blind palettes"):
+    - blue (#0072B2)         WHITE (unvisited)
+    - orange (#E69F00)       GRAY (on the current recursion stack;
+                             also Kahn's "in-queue" highlight)
+    - bluish-green (#009E73) BLACK (finished, post-emitted; also
+                             Kahn's "emitted" highlight)
+    - vermilion (#D55E00)    back-edge target (cycle-3 preset only)
+    - sky blue (#56B4E9)     currently-being-explored edge
+
+  Panel-kahn keyframes are owned by chapter 8.4's writer; panel-dfs
+  keyframes shipped 2026-05-25 with chapter 8.5. Status flips from
+  `scaffold` to `complete` once panel-kahn lands.

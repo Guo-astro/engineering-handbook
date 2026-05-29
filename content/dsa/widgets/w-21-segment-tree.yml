@@ -1,0 +1,187 @@
+# Segment tree — Level 2 multi-panel chapter widget
+# Animates build, point-update, and range-query mechanics on a canonical
+# 8-element array. Status: complete.
+
+id: w-21-segment-tree
+title: "Segment tree (build / update / query)"
+type: single-panel
+level: 2  # white-box: implicit-array tree + active recursion frame visible
+
+modes: [preset]  # tree/heap class is preset-only per widget-architecture.md;
+                 # randomize/edit would not surface every phase reliably
+
+caps:
+  array_length: { min: 4, max: 8 }   # n=8 -> 15-node perfect binary tree
+  values: { min: -99, max: 99 }
+  steps: { hard_max: 60 }            # canonical 48-step trace under cap
+
+commands:
+  - name: enterVertex
+    payload: { v: "integer", range: "[integer, integer]", phase: "build|update|query" }
+    description: "Halo the implicit-tree vertex v whose interval is [tl, tr]."
+  - name: leafSet
+    payload: { v: "integer", range: "[integer, integer]", value: "integer" }
+    description: "Write a leaf vertex's value (during build or update)."
+  - name: combine
+    payload: { v: "integer", range: "[integer, integer]", left: "integer", right: "integer", value: "integer" }
+    description: "Post-order recombine: t[v] = merge(t[2v], t[2v+1])."
+  - name: descend
+    payload: { v: "integer", range: "[integer, integer]" }
+    description: "Update walks root-to-leaf; halo follows the descent path."
+  - name: split
+    payload: { v: "integer", range: "[integer, integer]", q: "[integer, integer]", tm: "integer" }
+    description: "Query splits at midpoint tm; recurse into both halves."
+  - name: hit
+    payload: { v: "integer", range: "[integer, integer]", value: "integer" }
+    description: "Vertex range exactly matches the (clipped) query range; return t[v]."
+  - name: empty
+    payload: { v: "integer", range: "[integer, integer]", q: "[integer, integer]" }
+    description: "Clipped query has l > r; return identity (0 for sum) and stop."
+  - name: answer
+    payload: { result: "integer" }
+    description: "Final query result reported."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-21-segment-tree-fallback.svg
+  keyframes_used: [0, 29, 38, 47]   # init / build complete / post-update /
+                                     # query answered
+
+panels:
+  default:
+    chapter: "6.10"
+    label: "Segment tree on [1, 3, 5, 7, 9, 11, 13, 15]"
+    canonical_input: |
+      array = [1, 3, 5, 7, 9, 11, 13, 15]
+      operations = [
+        build,
+        update(index=3, new_val=6),    # changes 7 -> 6
+        sumRange(l=2, r=5),            # expected: 5 + 6 + 9 + 11 = 31
+      ]
+    presets:
+      - id: canonical
+        label: "Canonical (chapter example)"
+        input:
+          array: [1, 3, 5, 7, 9, 11, 13, 15]
+          operation: build
+      - id: update-mid
+        label: "update(3, 6) — root-to-leaf descent"
+        input:
+          array: [1, 3, 5, 7, 9, 11, 13, 15]
+          operation: update
+          update_index: 3
+          update_value: 6
+      - id: query-cross-mid
+        label: "sumRange(2, 5) — straddles the root split"
+        input:
+          array: [1, 3, 5, 6, 9, 11, 13, 15]   # post-update array
+          operation: query
+          query_l: 2
+          query_r: 5
+      - id: worst-case-query
+        label: "sumRange(0, 7) — single root hit"
+        input:
+          array: [1, 3, 5, 7, 9, 11, 13, 15]
+          operation: query
+          query_l: 0
+          query_r: 7
+    n_steps: 48
+
+    # Step buffer transcribed verbatim (verified by
+    # re-running step_buffer.py against the §2.2 Python reference;
+    # deterministic, byte-identical across runs ).
+    # Implicit-array indices: root=1, leaves=8..15 for n=8.
+    keyframes:
+      # ---- BUILD: post-order traversal, 30 steps ----
+      - { step: 0,  kind: enterVertex, payload: { v: 1,  range: [0, 7], phase: build }, narration: "Build starts at root v=1, range [0, 7]." }
+      - { step: 1,  kind: enterVertex, payload: { v: 2,  range: [0, 3], phase: build }, narration: "Recurse into left half: v=2, range [0, 3]." }
+      - { step: 2,  kind: enterVertex, payload: { v: 4,  range: [0, 1], phase: build }, narration: "Recurse left again: v=4, range [0, 1]." }
+      - { step: 3,  kind: enterVertex, payload: { v: 8,  range: [0, 0], phase: build }, narration: "Single-element range — this is a leaf vertex (v=8, index 0)." }
+      - { step: 4,  kind: leafSet,     payload: { v: 8,  range: [0, 0], value: 1 },     narration: "Write a[0]=1 into the leaf v=8." }
+      - { step: 5,  kind: enterVertex, payload: { v: 9,  range: [1, 1], phase: build }, narration: "Sibling leaf: v=9, range [1, 1]." }
+      - { step: 6,  kind: leafSet,     payload: { v: 9,  range: [1, 1], value: 3 },     narration: "Write a[1]=3 into the leaf v=9." }
+      - { step: 7,  kind: combine,     payload: { v: 4,  range: [0, 1], left: 1, right: 3, value: 4 }, narration: "Post-order combine at v=4: t[4] = 1 + 3 = 4." }
+      - { step: 8,  kind: enterVertex, payload: { v: 5,  range: [2, 3], phase: build }, narration: "Recurse into right child of v=2: v=5, range [2, 3]." }
+      - { step: 9,  kind: enterVertex, payload: { v: 10, range: [2, 2], phase: build }, narration: "Leaf v=10, range [2, 2]." }
+      - { step: 10, kind: leafSet,     payload: { v: 10, range: [2, 2], value: 5 },     narration: "Write a[2]=5 into v=10." }
+      - { step: 11, kind: enterVertex, payload: { v: 11, range: [3, 3], phase: build }, narration: "Leaf v=11, range [3, 3]." }
+      - { step: 12, kind: leafSet,     payload: { v: 11, range: [3, 3], value: 7 },     narration: "Write a[3]=7 into v=11." }
+      - { step: 13, kind: combine,     payload: { v: 5,  range: [2, 3], left: 5, right: 7, value: 12 },  narration: "Combine at v=5: t[5] = 5 + 7 = 12." }
+      - { step: 14, kind: combine,     payload: { v: 2,  range: [0, 3], left: 4, right: 12, value: 16 }, narration: "Combine at v=2: t[2] = 4 + 12 = 16. Left subtree of root is done." }
+      - { step: 15, kind: enterVertex, payload: { v: 3,  range: [4, 7], phase: build }, narration: "Now the right half: v=3, range [4, 7]." }
+      - { step: 16, kind: enterVertex, payload: { v: 6,  range: [4, 5], phase: build }, narration: "Recurse left: v=6, range [4, 5]." }
+      - { step: 17, kind: enterVertex, payload: { v: 12, range: [4, 4], phase: build }, narration: "Leaf v=12, range [4, 4]." }
+      - { step: 18, kind: leafSet,     payload: { v: 12, range: [4, 4], value: 9 },     narration: "Write a[4]=9 into v=12." }
+      - { step: 19, kind: enterVertex, payload: { v: 13, range: [5, 5], phase: build }, narration: "Leaf v=13, range [5, 5]." }
+      - { step: 20, kind: leafSet,     payload: { v: 13, range: [5, 5], value: 11 },    narration: "Write a[5]=11 into v=13." }
+      - { step: 21, kind: combine,     payload: { v: 6,  range: [4, 5], left: 9, right: 11, value: 20 }, narration: "Combine at v=6: t[6] = 9 + 11 = 20." }
+      - { step: 22, kind: enterVertex, payload: { v: 7,  range: [6, 7], phase: build }, narration: "Recurse right: v=7, range [6, 7]." }
+      - { step: 23, kind: enterVertex, payload: { v: 14, range: [6, 6], phase: build }, narration: "Leaf v=14, range [6, 6]." }
+      - { step: 24, kind: leafSet,     payload: { v: 14, range: [6, 6], value: 13 },    narration: "Write a[6]=13 into v=14." }
+      - { step: 25, kind: enterVertex, payload: { v: 15, range: [7, 7], phase: build }, narration: "Leaf v=15, range [7, 7]." }
+      - { step: 26, kind: leafSet,     payload: { v: 15, range: [7, 7], value: 15 },    narration: "Write a[7]=15 into v=15." }
+      - { step: 27, kind: combine,     payload: { v: 7,  range: [6, 7], left: 13, right: 15, value: 28 }, narration: "Combine at v=7: t[7] = 13 + 15 = 28." }
+      - { step: 28, kind: combine,     payload: { v: 3,  range: [4, 7], left: 20, right: 28, value: 48 }, narration: "Combine at v=3: t[3] = 20 + 28 = 48." }
+      - { step: 29, kind: combine,     payload: { v: 1,  range: [0, 7], left: 16, right: 48, value: 64 }, narration: "Combine at root: t[1] = 16 + 48 = 64. Build complete in O(n)." }
+
+      # ---- UPDATE: index 3 from 7 to 6, 9 steps ----
+      - { step: 30, kind: enterVertex, payload: { v: 1,  range: [0, 7], phase: update }, narration: "update(3, 6): start at root, descend toward index 3." }
+      - { step: 31, kind: descend,     payload: { v: 1,  range: [0, 7] }, narration: "Mid is 3; index 3 is in the left half — go to v=2." }
+      - { step: 32, kind: descend,     payload: { v: 2,  range: [0, 3] }, narration: "Mid is 1; index 3 is in the right half — go to v=5." }
+      - { step: 33, kind: descend,     payload: { v: 5,  range: [2, 3] }, narration: "Mid is 2; index 3 is in the right half — go to v=11." }
+      - { step: 34, kind: descend,     payload: { v: 11, range: [3, 3] }, narration: "Reached the target leaf v=11." }
+      - { step: 35, kind: leafSet,     payload: { v: 11, range: [3, 3], value: 6 }, narration: "Write a[3] = 6 (was 7). Now recombine on the way up." }
+      - { step: 36, kind: combine,     payload: { v: 5,  range: [2, 3], left: 5, right: 6, value: 11 }, narration: "v=5: t[5] = 5 + 6 = 11 (was 12)." }
+      - { step: 37, kind: combine,     payload: { v: 2,  range: [0, 3], left: 4, right: 11, value: 15 }, narration: "v=2: t[2] = 4 + 11 = 15 (was 16)." }
+      - { step: 38, kind: combine,     payload: { v: 1,  range: [0, 7], left: 15, right: 48, value: 63 }, narration: "Root: t[1] = 15 + 48 = 63. Update done in O(log n)." }
+
+      # ---- QUERY: sumRange(2, 5) on the updated tree, 9 steps ----
+      - { step: 39, kind: enterVertex, payload: { v: 1,  range: [0, 7], phase: query }, narration: "sumRange(2, 5): start at root v=1." }
+      - { step: 40, kind: split,       payload: { v: 1,  range: [0, 7], q: [2, 5], tm: 3 }, narration: "Query [2, 5] straddles mid=3; recurse into both halves." }
+      - { step: 41, kind: split,       payload: { v: 2,  range: [0, 3], q: [2, 3], tm: 1 }, narration: "At v=2 the clipped query becomes [2, 3]; mid=1; recurse into both halves." }
+      - { step: 42, kind: empty,       payload: { v: 4,  range: [0, 1], q: [2, 1] },       narration: "At v=4 the clipped query has l > r — empty range, return 0." }
+      - { step: 43, kind: hit,         payload: { v: 5,  range: [2, 3], value: 11 },        narration: "At v=5 the clipped query [2, 3] matches the vertex range exactly — return t[5] = 11." }
+      - { step: 44, kind: split,       payload: { v: 3,  range: [4, 7], q: [4, 5], tm: 5 }, narration: "At v=3 the clipped query becomes [4, 5]; mid=5; recurse into both halves." }
+      - { step: 45, kind: hit,         payload: { v: 6,  range: [4, 5], value: 20 },        narration: "At v=6 the clipped query [4, 5] matches exactly — return t[6] = 20." }
+      - { step: 46, kind: empty,       payload: { v: 7,  range: [6, 7], q: [6, 5] },        narration: "At v=7 the clipped query has l > r — empty range, return 0." }
+      - { step: 47, kind: answer,      payload: { result: 31 }, narration: "Sum: 0 + 11 + 20 + 0 = 31. Four vertices visited at most per level — O(log n)." }
+
+notes: |
+  Level 2 multi-panel chapter widget for 6.10 segment trees. DSH-16
+  Hard-algorithm widget per widget-decision-rule.md §4 (alongside AVL,
+  Dijkstra, KMP). Three sub-views in a single panel:
+
+    * Panel A (top, ~60% canvas): the implicit binary tree with vertex
+      IDs and current aggregate values. Edges drawn from parent v to
+      children 2v, 2v+1. The root halo + the active-recursion-frame
+      halo are the two animated overlays.
+    * Panel B (bottom, ~40% canvas): the linear array of 8 cells.
+      The active vertex's [tl, tr] interval is shaded across the cells
+      it covers, making the implicit-array layout visible at a glance.
+    * Panel C (status line, aria-live="polite"): plain-English step
+      narration ("Splitting query [2, 5] at v=1 (range [0, 7]) into
+      left [2, 3] and right [4, 5]").
+
+  Wong palette per style-guide.md Animation conventions:
+    * Default vertex: blue #0072B2 (unvisited).
+    * Active recursion frame: orange #E69F00 (current).
+    * Hit / exact-match return: green #009E73 (accepted).
+    * Empty range early-exit: yellow #F0E442 (candidate ruled out).
+    * Update-path on root-to-leaf descent: vermilion #D55E00.
+
+  Reduced-motion fallback uses keyframes [0, 29, 38, 47]:
+    * step 0  — init (root halo, all cells empty/unfilled).
+    * step 29 — build complete (every internal aggregate filled; root
+      shows total 64).
+    * step 38 — post-update (the four nodes on the index-3 root path
+      v=11, v=5, v=2, v=1 carry their new sums; query has not yet run).
+    * step 47 — query answered (the two hit vertices v=5 sum=11 and
+      v=6 sum=20 highlighted; empty branch v=4 and v=7 dimmed; result
+      31 in the status line).
+
+  All four presets share the same canonical 8-element array; the
+  query-cross-mid preset uses the post-update version of the array
+  (index 3 set to 6) so the displayed answer 31 matches the chapter
+  prose. The worst-case-query preset (sumRange(0, 7)) collapses to
+  a single root hit, demonstrating that the four-vertices-per-level
+  bound is loose at the tree's extremes.

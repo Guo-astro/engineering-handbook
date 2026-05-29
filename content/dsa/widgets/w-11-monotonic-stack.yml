@@ -1,0 +1,178 @@
+# Monotonic stack — chapter widget for 4.0
+# Single-panel widget animating LC 739 Daily Temperatures.
+
+id: w-11-monotonic-stack
+title: "Monotonic stack (next-greater scan)"
+type: single-panel
+level: 1
+modes: [preset, randomize, edit]
+
+caps:
+  array_length: { min: 4, max: 12 }
+  values: { min: 30, max: 120 }
+
+commands:
+  - name: enter
+    payload: { i: 'integer', current: 'integer' }
+    description: "Advance to index i; highlight the incoming value and the stack top."
+  - name: popResolve
+    payload: { popped_index: 'integer', popped_value: 'integer', current: 'integer' }
+    description: "Pop the violating index; record answer[j] = i - j; redraw the stack and answer row."
+  - name: push
+    payload: { i: 'integer' }
+    description: "Push index i onto the stack."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-11-monotonic-stack-fallback.svg
+  keyframes_used: [0, 7, 16, 23]
+  # Override: step 16 (the dramatic mid-array pop chain at i=5) is forced.
+
+panels:
+  default:
+    chapter: "4.0"
+    label: "Monotonic stack on Daily Temperatures (LC 739)"
+    canonical_input: |
+      temperatures = [73, 74, 75, 71, 69, 72, 76, 73]
+    presets:
+      - id: lc739_canonical
+        label: "LC 739 canonical (8 days)"
+        input: { temperatures: [73, 74, 75, 71, 69, 72, 76, 73] }
+      - id: monotone_increasing
+        label: "Strictly increasing (every push pops)"
+        input: { temperatures: [30, 40, 50, 60] }
+      - id: monotone_decreasing
+        label: "Strictly decreasing (no pop ever fires)"
+        input: { temperatures: [90, 80, 70] }
+    n_steps: 24
+    keyframes:
+      - step: 0
+        kind: init
+        state: { i: null, stack: [], answer: [0, 0, 0, 0, 0, 0, 0, 0] }
+        narration: "Initialize empty stack and answer array of zeros."
+      - step: 1
+        kind: enter
+        payload: { i: 0, current: 73 }
+        state: { i: 0, stack: [], answer: [0, 0, 0, 0, 0, 0, 0, 0] }
+        narration: "i=0, T[i]=73. Compare with stack top."
+      - step: 2
+        kind: push
+        payload: { i: 0 }
+        state: { i: 0, stack: [0], answer: [0, 0, 0, 0, 0, 0, 0, 0] }
+        narration: "Push index 0 (value 73) onto stack."
+      - step: 3
+        kind: enter
+        payload: { i: 1, current: 74 }
+        state: { i: 1, stack: [0], answer: [0, 0, 0, 0, 0, 0, 0, 0] }
+        narration: "i=1, T[i]=74. Compare with stack top."
+      - step: 4
+        kind: popResolve
+        payload: { popped_index: 0, popped_value: 73, current: 74 }
+        state: { i: 1, stack: [], answer: [1, 0, 0, 0, 0, 0, 0, 0] }
+        narration: "T[0]=73 < T[1]=74. Pop. answer[0]=1."
+      - step: 5
+        kind: push
+        payload: { i: 1 }
+        state: { i: 1, stack: [1], answer: [1, 0, 0, 0, 0, 0, 0, 0] }
+        narration: "Push index 1 (value 74) onto stack."
+      - step: 6
+        kind: enter
+        payload: { i: 2, current: 75 }
+        state: { i: 2, stack: [1], answer: [1, 0, 0, 0, 0, 0, 0, 0] }
+        narration: "i=2, T[i]=75. Compare with stack top."
+      - step: 7
+        kind: popResolve
+        payload: { popped_index: 1, popped_value: 74, current: 75 }
+        state: { i: 2, stack: [], answer: [1, 1, 0, 0, 0, 0, 0, 0] }
+        narration: "T[1]=74 < T[2]=75. Pop. answer[1]=1."
+      - step: 8
+        kind: push
+        payload: { i: 2 }
+        state: { i: 2, stack: [2], answer: [1, 1, 0, 0, 0, 0, 0, 0] }
+        narration: "Push index 2 (value 75) onto stack."
+      - step: 9
+        kind: enter
+        payload: { i: 3, current: 71 }
+        state: { i: 3, stack: [2], answer: [1, 1, 0, 0, 0, 0, 0, 0] }
+        narration: "i=3, T[i]=71. Compare with stack top."
+      - step: 10
+        kind: push
+        payload: { i: 3 }
+        state: { i: 3, stack: [2, 3], answer: [1, 1, 0, 0, 0, 0, 0, 0] }
+        narration: "Push index 3 (value 71) onto stack."
+      - step: 11
+        kind: enter
+        payload: { i: 4, current: 69 }
+        state: { i: 4, stack: [2, 3], answer: [1, 1, 0, 0, 0, 0, 0, 0] }
+        narration: "i=4, T[i]=69. Compare with stack top."
+      - step: 12
+        kind: push
+        payload: { i: 4 }
+        state: { i: 4, stack: [2, 3, 4], answer: [1, 1, 0, 0, 0, 0, 0, 0] }
+        narration: "Push index 4 (value 69) onto stack."
+      - step: 13
+        kind: enter
+        payload: { i: 5, current: 72 }
+        state: { i: 5, stack: [2, 3, 4], answer: [1, 1, 0, 0, 0, 0, 0, 0] }
+        narration: "i=5, T[i]=72. Compare with stack top."
+      - step: 14
+        kind: popResolve
+        payload: { popped_index: 4, popped_value: 69, current: 72 }
+        state: { i: 5, stack: [2, 3], answer: [1, 1, 0, 0, 1, 0, 0, 0] }
+        narration: "T[4]=69 < T[5]=72. Pop. answer[4]=1."
+      - step: 15
+        kind: popResolve
+        payload: { popped_index: 3, popped_value: 71, current: 72 }
+        state: { i: 5, stack: [2], answer: [1, 1, 0, 2, 1, 0, 0, 0] }
+        narration: "T[3]=71 < T[5]=72. Pop. answer[3]=2."
+      - step: 16
+        kind: push
+        payload: { i: 5 }
+        state: { i: 5, stack: [2, 5], answer: [1, 1, 0, 2, 1, 0, 0, 0] }
+        narration: "Push index 5 (value 72) onto stack."
+      - step: 17
+        kind: enter
+        payload: { i: 6, current: 76 }
+        state: { i: 6, stack: [2, 5], answer: [1, 1, 0, 2, 1, 0, 0, 0] }
+        narration: "i=6, T[i]=76. Compare with stack top."
+      - step: 18
+        kind: popResolve
+        payload: { popped_index: 5, popped_value: 72, current: 76 }
+        state: { i: 6, stack: [2], answer: [1, 1, 0, 2, 1, 1, 0, 0] }
+        narration: "T[5]=72 < T[6]=76. Pop. answer[5]=1."
+      - step: 19
+        kind: popResolve
+        payload: { popped_index: 2, popped_value: 75, current: 76 }
+        state: { i: 6, stack: [], answer: [1, 1, 4, 2, 1, 1, 0, 0] }
+        narration: "T[2]=75 < T[6]=76. Pop. answer[2]=4. Index 2 waited four days for a warmer one."
+      - step: 20
+        kind: push
+        payload: { i: 6 }
+        state: { i: 6, stack: [6], answer: [1, 1, 4, 2, 1, 1, 0, 0] }
+        narration: "Push index 6 (value 76) onto stack."
+      - step: 21
+        kind: enter
+        payload: { i: 7, current: 73 }
+        state: { i: 7, stack: [6], answer: [1, 1, 4, 2, 1, 1, 0, 0] }
+        narration: "i=7, T[i]=73. Compare with stack top."
+      - step: 22
+        kind: push
+        payload: { i: 7 }
+        state: { i: 7, stack: [6, 7], answer: [1, 1, 4, 2, 1, 1, 0, 0] }
+        narration: "Push index 7 (value 73) onto stack."
+      - step: 23
+        kind: done
+        state: { i: null, stack: [6, 7], answer: [1, 1, 4, 2, 1, 1, 0, 0], result: [1, 1, 4, 2, 1, 1, 0, 0] }
+        narration: "Done. Indices 6 and 7 have no warmer day; their answer slots stay 0."
+
+selector_default: default
+
+notes: |
+  Chapter 4.0 widget. Animates the cleanest demonstration of the
+  monotonic-stack invariant on LC 739 (24 steps, well under the 30-step
+  cap). The dramatic moment is step 19, where index 2 (value 75) finally
+  resolves after waiting four days — the visual payoff that explains why
+  storing indices (not values) matters: answer[2] = 4 is the index
+  difference, recoverable only because we kept index 2 on the stack.
+  LC 84's sentinel-pop trick gets a separate editorial widget
+  (e-LC084-largest-rect) when the Appendix C editorial ships.
