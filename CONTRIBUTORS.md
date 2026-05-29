@@ -1,12 +1,12 @@
 # Contributors
 
-Thank you to everyone who has helped build The HLD Handbook.
+Thank you to everyone who has helped build The Engineering Handbook (HLD + DSA, with more curricula planned).
 
 Contributors are listed in order of first contribution. Once we have 3+ active contributors, part-level ownership will also be listed.
 
 ## Creator and BDFL
 
-- **Aayush Soni** ([@invincible04](https://github.com/invincible04)) - project creator, curriculum design, all 181 chapters, website and infrastructure.
+- **Aayush Soni** ([@invincible04](https://github.com/invincible04)) - project creator, curriculum design, all HLD and DSA chapters, website and infrastructure.
 
 ## Chapter Authors
 

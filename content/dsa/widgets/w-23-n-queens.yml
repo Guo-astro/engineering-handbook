@@ -1,0 +1,145 @@
+# N-Queens -- backtracking on a 4x4 board
+# Single-panel chapter widget for 7.3 N-Queens. Animates the place /
+# attack-mask / dead-end / backtrack cycle on the canonical n=4 input.
+# 40-step trace (1 init + 16 place + 16 backtrack + 4 dead-end + 2
+# solution + 1 done), transcribed verbatim step buffer
+# (deterministic; recursion enumerates columns in fixed 0..n-1 order).
+#
+# Status: complete (full keyframe trace from verified Python reference).
+
+id: w-23-n-queens
+title: "N-Queens -- place / attack / backtrack on n=4"
+type: single-panel
+level: 1
+
+modes: [preset]   # tree-search / backtracking class is preset-only;
+                  # randomize/edit would not surface every phase reliably
+
+caps:
+  n: { min: 4, max: 6 }
+  steps: { hard_max: 1000 }   # n=4 -> 40 frames; n=5 ~150; n=6 ~400.
+
+commands:
+  - name: place
+    payload: { row: "integer", col: "integer", cols: "integer", diag1: "integer", diag2: "integer" }
+    description: "Place a queen at (row, col); update the three constraint masks."
+  - name: deadEnd
+    payload: { row: "integer", cols: "integer", diag1: "integer", diag2: "integer" }
+    description: "Entered a row whose available mask is empty -- all four columns blocked."
+  - name: backtrack
+    payload: { row: "integer", col: "integer", cols: "integer", diag1: "integer", diag2: "integer" }
+    description: "Remove the queen at (row, col); restore the parent's masks; try next column."
+  - name: solution
+    payload: { row: "integer", board: "[integer]" }
+    description: "row == n: emit the solution; flash the four placed queens."
+  - name: done
+    payload: {}
+    description: "Recursion exhausted at row 0; search complete."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-23-n-queens-fallback.svg
+  keyframes_used: [0, 3, 14, 15, 23, 24]
+  # init / first dead-end / first solution build / first solution emit /
+  # second solution build / second solution emit.
+
+panels:
+  default:
+    chapter: "7.3"
+    label: "N-Queens on a 4x4 board"
+    canonical_input: |
+      n = 4
+      expected_solutions = 2
+      solutions:
+        - [1, 3, 0, 2]   # row r holds queen at column board[r]
+        - [2, 0, 3, 1]
+    presets:
+      - id: canonical
+        label: "n=4 (2 solutions, 4 dead-ends, 40 steps)"
+        input: { n: 4 }
+      - id: n5
+        label: "n=5 (10 solutions, more pruning visible)"
+        input: { n: 5 }
+      - id: n6
+        label: "n=6 (4 solutions, demonstrates the n=6 anomaly)"
+        input: { n: 6 }
+    n_steps: 40
+
+    # Trace transcribed step buffer. Each frame's
+    # `board` is column-per-row vector with -1 = empty. Masks are the
+    # integers exactly as the recursion carries them; the renderer paints
+    # them as colored overlays on the 4x4 grid.
+    keyframes:
+      - { step:  0, kind: init,      state: { board: [-1, -1, -1, -1], cols: 0,  diag1:   0, diag2: 0 }, narration: "Empty 4x4 board. No queens placed; all constraint masks are zero." }
+      - { step:  1, kind: place,     payload: { row: 0, col: 0, cols: 1,  diag1: 2,   diag2: 0 }, state: { board: [ 0, -1, -1, -1], cols: 1,  diag1:   2, diag2: 0 }, narration: "Place queen at (0, 0). cols bit 0 set; diag1 shifts to bit 1; diag2 shifts to 0." }
+      - { step:  2, kind: place,     payload: { row: 1, col: 2, cols: 5,  diag1: 12,  diag2: 2 }, state: { board: [ 0,  2, -1, -1], cols: 5,  diag1:  12, diag2: 2 }, narration: "Row 1: only column 2 is legal (col 1 hits diag1, col 3 hits diag2). Place at (1, 2)." }
+      - { step:  3, kind: deadEnd,   payload: { row: 2, cols: 5, diag1: 12, diag2: 2 }, state: { board: [ 0,  2, -1, -1], cols: 5,  diag1:  12, diag2: 2 }, narration: "Row 2: cols | diag1 | diag2 = 5 | 12 | 2 = 15 = 0b1111. Every column blocked. Dead end." }
+      - { step:  4, kind: backtrack, payload: { row: 1, col: 2, cols: 1,  diag1: 2,   diag2: 0 }, state: { board: [ 0, -1, -1, -1], cols: 1,  diag1:   2, diag2: 0 }, narration: "Backtrack: remove (1, 2). The bitmask undo is implicit -- masks are passed by value, so the parent's state was never mutated." }
+      - { step:  5, kind: place,     payload: { row: 1, col: 3, cols: 9,  diag1: 20,  diag2: 4 }, state: { board: [ 0,  3, -1, -1], cols: 9,  diag1:  20, diag2: 4 }, narration: "Try the next available column at row 1. Column 3 is legal." }
+      - { step:  6, kind: place,     payload: { row: 2, col: 1, cols: 11, diag1: 44,  diag2: 3 }, state: { board: [ 0,  3,  1, -1], cols: 11, diag1:  44, diag2: 3 }, narration: "Row 2: column 1 is legal. Place." }
+      - { step:  7, kind: deadEnd,   payload: { row: 3, cols: 11, diag1: 44, diag2: 3 }, state: { board: [ 0,  3,  1, -1], cols: 11, diag1:  44, diag2: 3 }, narration: "Row 3: every column blocked again. Dead end." }
+      - { step:  8, kind: backtrack, payload: { row: 2, col: 1, cols: 9,  diag1: 20,  diag2: 4 }, state: { board: [ 0,  3, -1, -1], cols: 9,  diag1:  20, diag2: 4 } }
+      - { step:  9, kind: backtrack, payload: { row: 1, col: 3, cols: 1,  diag1: 2,   diag2: 0 }, state: { board: [ 0, -1, -1, -1], cols: 1,  diag1:   2, diag2: 0 } }
+      - { step: 10, kind: backtrack, payload: { row: 0, col: 0, cols: 0,  diag1: 0,   diag2: 0 }, state: { board: [-1, -1, -1, -1], cols: 0,  diag1:   0, diag2: 0 }, narration: "Row 0 exhausted column 0. Try column 1." }
+      - { step: 11, kind: place,     payload: { row: 0, col: 1, cols: 2,  diag1: 4,   diag2: 1 }, state: { board: [ 1, -1, -1, -1], cols: 2,  diag1:   4, diag2: 1 } }
+      - { step: 12, kind: place,     payload: { row: 1, col: 3, cols: 10, diag1: 24,  diag2: 4 }, state: { board: [ 1,  3, -1, -1], cols: 10, diag1:  24, diag2: 4 } }
+      - { step: 13, kind: place,     payload: { row: 2, col: 0, cols: 11, diag1: 50,  diag2: 2 }, state: { board: [ 1,  3,  0, -1], cols: 11, diag1:  50, diag2: 2 } }
+      - { step: 14, kind: place,     payload: { row: 3, col: 2, cols: 15, diag1: 108, diag2: 3 }, state: { board: [ 1,  3,  0,  2], cols: 15, diag1: 108, diag2: 3 }, narration: "Row 3 column 2: all four queens placed without conflict." }
+      - { step: 15, kind: solution,  payload: { row: 4, board: [1, 3, 0, 2] }, state: { board: [ 1,  3,  0,  2], cols: 15, diag1: 108, diag2: 3 }, narration: "First solution: (0,1) (1,3) (2,0) (3,2). Encoded as [1, 3, 0, 2]." }
+      - { step: 16, kind: backtrack, payload: { row: 3, col: 2, cols: 11, diag1: 50,  diag2: 2 }, state: { board: [ 1,  3,  0, -1], cols: 11, diag1:  50, diag2: 2 } }
+      - { step: 17, kind: backtrack, payload: { row: 2, col: 0, cols: 10, diag1: 24,  diag2: 4 }, state: { board: [ 1,  3, -1, -1], cols: 10, diag1:  24, diag2: 4 } }
+      - { step: 18, kind: backtrack, payload: { row: 1, col: 3, cols: 2,  diag1: 4,   diag2: 1 }, state: { board: [ 1, -1, -1, -1], cols: 2,  diag1:   4, diag2: 1 } }
+      - { step: 19, kind: backtrack, payload: { row: 0, col: 1, cols: 0,  diag1: 0,   diag2: 0 }, state: { board: [-1, -1, -1, -1], cols: 0,  diag1:   0, diag2: 0 } }
+      - { step: 20, kind: place,     payload: { row: 0, col: 2, cols: 4,  diag1: 8,   diag2: 2 }, state: { board: [ 2, -1, -1, -1], cols: 4,  diag1:   8, diag2: 2 } }
+      - { step: 21, kind: place,     payload: { row: 1, col: 0, cols: 5,  diag1: 18,  diag2: 1 }, state: { board: [ 2,  0, -1, -1], cols: 5,  diag1:  18, diag2: 1 } }
+      - { step: 22, kind: place,     payload: { row: 2, col: 3, cols: 13, diag1: 52,  diag2: 4 }, state: { board: [ 2,  0,  3, -1], cols: 13, diag1:  52, diag2: 4 } }
+      - { step: 23, kind: place,     payload: { row: 3, col: 1, cols: 15, diag1: 108, diag2: 3 }, state: { board: [ 2,  0,  3,  1], cols: 15, diag1: 108, diag2: 3 } }
+      - { step: 24, kind: solution,  payload: { row: 4, board: [2, 0, 3, 1] }, state: { board: [ 2,  0,  3,  1], cols: 15, diag1: 108, diag2: 3 }, narration: "Second solution: (0,2) (1,0) (2,3) (3,1). The reflection of solution 1." }
+      - { step: 25, kind: backtrack, payload: { row: 3, col: 1, cols: 13, diag1: 52,  diag2: 4 }, state: { board: [ 2,  0,  3, -1], cols: 13, diag1:  52, diag2: 4 } }
+      - { step: 26, kind: backtrack, payload: { row: 2, col: 3, cols: 5,  diag1: 18,  diag2: 1 }, state: { board: [ 2,  0, -1, -1], cols: 5,  diag1:  18, diag2: 1 } }
+      - { step: 27, kind: backtrack, payload: { row: 1, col: 0, cols: 4,  diag1: 8,   diag2: 2 }, state: { board: [ 2, -1, -1, -1], cols: 4,  diag1:   8, diag2: 2 } }
+      - { step: 28, kind: backtrack, payload: { row: 0, col: 2, cols: 0,  diag1: 0,   diag2: 0 }, state: { board: [-1, -1, -1, -1], cols: 0,  diag1:   0, diag2: 0 } }
+      - { step: 29, kind: place,     payload: { row: 0, col: 3, cols: 8,  diag1: 16,  diag2: 4 }, state: { board: [ 3, -1, -1, -1], cols: 8,  diag1:  16, diag2: 4 } }
+      - { step: 30, kind: place,     payload: { row: 1, col: 0, cols: 9,  diag1: 34,  diag2: 2 }, state: { board: [ 3,  0, -1, -1], cols: 9,  diag1:  34, diag2: 2 } }
+      - { step: 31, kind: place,     payload: { row: 2, col: 2, cols: 13, diag1: 76,  diag2: 3 }, state: { board: [ 3,  0,  2, -1], cols: 13, diag1:  76, diag2: 3 } }
+      - { step: 32, kind: deadEnd,   payload: { row: 3, cols: 13, diag1: 76, diag2: 3 }, state: { board: [ 3,  0,  2, -1], cols: 13, diag1:  76, diag2: 3 } }
+      - { step: 33, kind: backtrack, payload: { row: 2, col: 2, cols: 9,  diag1: 34,  diag2: 2 }, state: { board: [ 3,  0, -1, -1], cols: 9,  diag1:  34, diag2: 2 } }
+      - { step: 34, kind: backtrack, payload: { row: 1, col: 0, cols: 8,  diag1: 16,  diag2: 4 }, state: { board: [ 3, -1, -1, -1], cols: 8,  diag1:  16, diag2: 4 } }
+      - { step: 35, kind: place,     payload: { row: 1, col: 1, cols: 10, diag1: 36,  diag2: 3 }, state: { board: [ 3,  1, -1, -1], cols: 10, diag1:  36, diag2: 3 } }
+      - { step: 36, kind: deadEnd,   payload: { row: 2, cols: 10, diag1: 36, diag2: 3 }, state: { board: [ 3,  1, -1, -1], cols: 10, diag1:  36, diag2: 3 } }
+      - { step: 37, kind: backtrack, payload: { row: 1, col: 1, cols: 8,  diag1: 16,  diag2: 4 }, state: { board: [ 3, -1, -1, -1], cols: 8,  diag1:  16, diag2: 4 } }
+      - { step: 38, kind: backtrack, payload: { row: 0, col: 3, cols: 0,  diag1: 0,   diag2: 0 }, state: { board: [-1, -1, -1, -1], cols: 0,  diag1:   0, diag2: 0 } }
+      - { step: 39, kind: done,      state: { board: [-1, -1, -1, -1], cols: 0, diag1: 0, diag2: 0 }, narration: "Search complete. Two solutions, four dead ends. The 4x4 search visited 38 algorithmically-meaningful states." }
+
+selector_default: default
+
+notes: |
+  Chapter 7.3 mechanics widget. Animates the place / attack-mask /
+  dead-end / backtrack cycle on n=4 (the smallest non-trivial board:
+  n=2 and n=3 produce zero solutions per OEIS A000170).
+
+  The widget's central teaching move is showing the three constraint
+  masks (cols, diag1, diag2) as colored overlays on the board at the
+  moment of each place event. At step 3 (the first dead-end), the
+  three masks union to 5 | 12 | 2 = 15 = 0b1111 -- all four columns
+  blocked at row 2. The reader sees the pruning happen in the masks,
+  not just in the empty rows.
+
+  Wong palette per style-guide.md Animation conventions:
+    * Bluish green (#009E73) for placed queens
+    * Vermilion (#D55E00) for cells blocked by cols
+    * Orange (#E69F00) for cells blocked by diag1
+    * Reddish purple (#CC79A7) for cells blocked by diag2
+    * Yellow (#F0E442) for the currently-attempting cell
+    * Sky blue (#56B4E9) for cells in the most recent backtrack path
+
+  The four mask-color overlays let the reader see at a glance "this
+  cell is blocked by both column AND anti-diagonal" -- the conceptual
+  core of the chapter. Reduced-motion fallback uses keyframes
+  [0, 3, 14, 15, 23, 24]: empty, first dead-end, first solution
+  built, first solution emitted, second solution built, second
+  solution emitted.
+
+  Trace transcribed verbatim step buffer (40 frames,
+  deterministic by construction since the recursion enumerates
+  columns 0..n-1 in fixed order).

@@ -1,0 +1,379 @@
+# Bellman-Ford
+# Single-panel chapter widget. Two presets: textbook 5-node graph (no negative
+# cycle, V-1 = 4 passes including 2 early-termination noop passes), and 4-node
+# graph with cycle 1->2->3->1 of weight -2 (negative cycle detected on V-th pass).
+
+id: w-37-bellman-ford
+title: "Bellman-Ford with negative-cycle detection"
+type: single-panel
+level: 1
+modes: [preset, randomize, edit]
+
+caps:
+  node_count: { min: 3, max: 8 }
+  edge_weight: { min: -9999, max: 9999 }
+  trace_length: { max: 200 }
+
+commands:
+  - name: init
+    payload: { src: 'integer', dist: 'array<integer | INF>' }
+    description: "Initialize dist[src]=0, all others INF."
+  - name: passStart
+    payload: { pass: 'integer', mode: 'enum<vanilla|k-edge>' }
+    description: "Begin a relaxation pass."
+  - name: relax
+    payload: { edge: 'tuple<u,v,w>', oldDist: 'integer | INF', newDist: 'integer' }
+    description: "Edge u->v relaxes; dist[v] drops from oldDist to newDist."
+  - name: passEnd
+    payload: { pass: 'integer', anyRelaxed: 'boolean' }
+    description: "Pass complete; anyRelaxed=false enables early termination."
+  - name: vcheckStart
+    payload: {}
+    description: "Begin V-th pass (negative-cycle detection)."
+  - name: vcheckClean
+    payload: {}
+    description: "V-th pass relaxed nothing: no negative cycle reachable."
+  - name: vcheckRelax
+    payload: { edge: 'tuple<u,v,w>' }
+    description: "V-th pass found a still-relaxing edge: NEGATIVE CYCLE."
+  - name: done
+    payload: { dist: 'array<integer | INF>', hasNegativeCycle: 'boolean' }
+    description: "Halt; emit final dist[] and the cycle flag."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-37-bellman-ford-fallback.svg
+  keyframes_used: [0, "first_pass_end", "convergence", "vcheck_outcome"]
+
+panels:
+  default:
+    chapter: "8.10"
+    label: "Bellman-Ford on a 5-node graph (and a 4-node graph with a negative cycle)"
+    canonical_input: |
+      n = 5, src = 0
+      edges = [(0,1,6), (0,2,7), (1,2,8), (1,3,5), (1,4,-4),
+               (2,3,-3), (2,4,9), (3,1,-2), (4,0,2), (4,3,7)]
+    presets:
+      - id: canonical_no_neg_cycle
+        label: "5-node graph, no negative cycle"
+        input:
+          n: 5
+          src: 0
+          edges: [[0,1,6],[0,2,7],[1,2,8],[1,3,5],[1,4,-4],[2,3,-3],[2,4,9],[3,1,-2],[4,0,2],[4,3,7]]
+          mode: vanilla
+      - id: negative_cycle_detection
+        label: "4-node graph with cycle 1->2->3->1 of weight -2"
+        input:
+          n: 4
+          src: 0
+          edges: [[0,1,1],[1,2,2],[2,3,-5],[3,1,1]]
+          mode: vanilla
+    n_steps: 19
+    keyframes:
+      - step_id: 0
+        action: init
+        highlights: ["dist-row"]
+        state_snapshot:
+          dist: [0, "INF", "INF", "INF", "INF"]
+          pass: null
+        narration: "init: dist[0]=0, all other vertices INF."
+      - step_id: 1
+        action: passStart
+        highlights: ["pass-counter"]
+        state_snapshot:
+          dist: [0, "INF", "INF", "INF", "INF"]
+          pass: 1
+        narration: "pass 1 of 4 begins (V-1 = 4 for n=5)."
+      - step_id: 2
+        action: relax
+        highlights: ["edge-0-1", "dist-cell-1"]
+        state_snapshot:
+          dist: [0, 6, "INF", "INF", "INF"]
+          pass: 1
+        narration: "relax (0->1, w=6): INF -> 6."
+      - step_id: 3
+        action: relax
+        highlights: ["edge-0-2", "dist-cell-2"]
+        state_snapshot:
+          dist: [0, 6, 7, "INF", "INF"]
+          pass: 1
+        narration: "relax (0->2, w=7): INF -> 7."
+      - step_id: 4
+        action: relax
+        highlights: ["edge-1-3", "dist-cell-3"]
+        state_snapshot:
+          dist: [0, 6, 7, 11, "INF"]
+          pass: 1
+        narration: "relax (1->3, w=5): INF -> 11."
+      - step_id: 5
+        action: relax
+        highlights: ["edge-1-4", "dist-cell-4"]
+        state_snapshot:
+          dist: [0, 6, 7, 11, 2]
+          pass: 1
+        narration: "relax (1->4, w=-4): INF -> 2."
+      - step_id: 6
+        action: relax
+        highlights: ["edge-2-3", "dist-cell-3"]
+        state_snapshot:
+          dist: [0, 6, 7, 4, 2]
+          pass: 1
+        narration: "relax (2->3, w=-3): 11 -> 4."
+      - step_id: 7
+        action: relax
+        highlights: ["edge-3-1", "dist-cell-1"]
+        state_snapshot:
+          dist: [0, 2, 7, 4, 2]
+          pass: 1
+        narration: "relax (3->1, w=-2): 6 -> 2."
+      - step_id: 8
+        action: passEnd
+        highlights: ["pass-counter"]
+        state_snapshot:
+          dist: [0, 2, 7, 4, 2]
+          pass: 1
+          anyRelaxed: true
+        narration: "pass 1 end (relaxed=true)."
+      - step_id: 9
+        action: passStart
+        highlights: ["pass-counter"]
+        state_snapshot:
+          dist: [0, 2, 7, 4, 2]
+          pass: 2
+        narration: "pass 2 of 4 begins."
+      - step_id: 10
+        action: relax
+        highlights: ["edge-1-4", "dist-cell-4"]
+        state_snapshot:
+          dist: [0, 2, 7, 4, -2]
+          pass: 2
+        narration: "relax (1->4, w=-4): 2 -> -2."
+      - step_id: 11
+        action: passEnd
+        highlights: ["pass-counter"]
+        state_snapshot:
+          dist: [0, 2, 7, 4, -2]
+          pass: 2
+          anyRelaxed: true
+        narration: "pass 2 end (relaxed=true)."
+      - step_id: 12
+        action: passStart
+        highlights: ["pass-counter"]
+        state_snapshot:
+          dist: [0, 2, 7, 4, -2]
+          pass: 3
+        narration: "pass 3 of 4 begins."
+      - step_id: 13
+        action: passEnd
+        highlights: ["pass-counter"]
+        state_snapshot:
+          dist: [0, 2, 7, 4, -2]
+          pass: 3
+          anyRelaxed: false
+        narration: "pass 3 end (relaxed=false; safe to early-terminate)."
+      - step_id: 14
+        action: passStart
+        highlights: ["pass-counter"]
+        state_snapshot:
+          dist: [0, 2, 7, 4, -2]
+          pass: 4
+        narration: "pass 4 of 4 begins."
+      - step_id: 15
+        action: passEnd
+        highlights: ["pass-counter"]
+        state_snapshot:
+          dist: [0, 2, 7, 4, -2]
+          pass: 4
+          anyRelaxed: false
+        narration: "pass 4 end (relaxed=false)."
+      - step_id: 16
+        action: vcheckStart
+        highlights: ["vcheck-banner"]
+        state_snapshot:
+          dist: [0, 2, 7, 4, -2]
+          pass: "V"
+        narration: "V-th pass: detect negative cycle."
+      - step_id: 17
+        action: vcheckClean
+        highlights: ["vcheck-banner"]
+        state_snapshot:
+          dist: [0, 2, 7, 4, -2]
+          pass: "V"
+        narration: "no edge relaxed: no negative cycle reachable from src."
+      - step_id: 18
+        action: done
+        highlights: ["dist-row"]
+        state_snapshot:
+          dist: [0, 2, 7, 4, -2]
+          hasNegativeCycle: false
+        narration: "Bellman-Ford complete. Final dist = [0, 2, 7, 4, -2]."
+
+  neg_cycle:
+    chapter: "8.10"
+    label: "Negative-cycle detection on a 4-node graph"
+    canonical_input: |
+      n = 4, src = 0
+      edges = [(0,1,1), (1,2,2), (2,3,-5), (3,1,1)]
+      cycle 1 -> 2 -> 3 -> 1 sums to 2 + (-5) + 1 = -2
+    presets:
+      - id: negative_cycle_detection
+        label: "Cycle 1->2->3->1 of weight -2"
+        input:
+          n: 4
+          src: 0
+          edges: [[0,1,1],[1,2,2],[2,3,-5],[3,1,1]]
+          mode: vanilla
+    n_steps: 20
+    keyframes:
+      - step_id: 0
+        action: init
+        highlights: ["dist-row"]
+        state_snapshot:
+          dist: [0, "INF", "INF", "INF"]
+          pass: null
+        narration: "init: dist[0]=0, others INF."
+      - step_id: 1
+        action: passStart
+        highlights: ["pass-counter"]
+        state_snapshot:
+          dist: [0, "INF", "INF", "INF"]
+          pass: 1
+        narration: "pass 1 of 3 begins (V-1 = 3 for n=4)."
+      - step_id: 2
+        action: relax
+        highlights: ["edge-0-1", "dist-cell-1"]
+        state_snapshot:
+          dist: [0, 1, "INF", "INF"]
+          pass: 1
+        narration: "relax (0->1, w=1): INF -> 1."
+      - step_id: 3
+        action: relax
+        highlights: ["edge-1-2", "dist-cell-2"]
+        state_snapshot:
+          dist: [0, 1, 3, "INF"]
+          pass: 1
+        narration: "relax (1->2, w=2): INF -> 3."
+      - step_id: 4
+        action: relax
+        highlights: ["edge-2-3", "dist-cell-3"]
+        state_snapshot:
+          dist: [0, 1, 3, -2]
+          pass: 1
+        narration: "relax (2->3, w=-5): INF -> -2."
+      - step_id: 5
+        action: relax
+        highlights: ["edge-3-1", "dist-cell-1"]
+        state_snapshot:
+          dist: [0, -1, 3, -2]
+          pass: 1
+        narration: "relax (3->1, w=1): 1 -> -1."
+      - step_id: 6
+        action: passEnd
+        highlights: ["pass-counter"]
+        state_snapshot:
+          dist: [0, -1, 3, -2]
+          pass: 1
+          anyRelaxed: true
+        narration: "pass 1 end."
+      - step_id: 7
+        action: passStart
+        highlights: ["pass-counter"]
+        state_snapshot:
+          dist: [0, -1, 3, -2]
+          pass: 2
+        narration: "pass 2 of 3 begins."
+      - step_id: 8
+        action: relax
+        highlights: ["edge-1-2", "dist-cell-2"]
+        state_snapshot:
+          dist: [0, -1, 1, -2]
+          pass: 2
+        narration: "relax (1->2, w=2): 3 -> 1."
+      - step_id: 9
+        action: relax
+        highlights: ["edge-2-3", "dist-cell-3"]
+        state_snapshot:
+          dist: [0, -1, 1, -4]
+          pass: 2
+        narration: "relax (2->3, w=-5): -2 -> -4."
+      - step_id: 10
+        action: relax
+        highlights: ["edge-3-1", "dist-cell-1"]
+        state_snapshot:
+          dist: [0, -3, 1, -4]
+          pass: 2
+        narration: "relax (3->1, w=1): -1 -> -3."
+      - step_id: 11
+        action: passEnd
+        highlights: ["pass-counter"]
+        state_snapshot:
+          dist: [0, -3, 1, -4]
+          pass: 2
+          anyRelaxed: true
+        narration: "pass 2 end."
+      - step_id: 12
+        action: passStart
+        highlights: ["pass-counter"]
+        state_snapshot:
+          dist: [0, -3, 1, -4]
+          pass: 3
+        narration: "pass 3 of 3 begins."
+      - step_id: 13
+        action: relax
+        highlights: ["edge-1-2", "dist-cell-2"]
+        state_snapshot:
+          dist: [0, -3, -1, -4]
+          pass: 3
+        narration: "relax (1->2, w=2): 1 -> -1."
+      - step_id: 14
+        action: relax
+        highlights: ["edge-2-3", "dist-cell-3"]
+        state_snapshot:
+          dist: [0, -3, -1, -6]
+          pass: 3
+        narration: "relax (2->3, w=-5): -4 -> -6."
+      - step_id: 15
+        action: relax
+        highlights: ["edge-3-1", "dist-cell-1"]
+        state_snapshot:
+          dist: [0, -5, -1, -6]
+          pass: 3
+        narration: "relax (3->1, w=1): -3 -> -5."
+      - step_id: 16
+        action: passEnd
+        highlights: ["pass-counter"]
+        state_snapshot:
+          dist: [0, -5, -1, -6]
+          pass: 3
+          anyRelaxed: true
+        narration: "pass 3 end."
+      - step_id: 17
+        action: vcheckStart
+        highlights: ["vcheck-banner"]
+        state_snapshot:
+          dist: [0, -5, -1, -6]
+          pass: "V"
+        narration: "V-th pass: detect negative cycle."
+      - step_id: 18
+        action: vcheckRelax
+        highlights: ["edge-1-2", "vcheck-banner"]
+        state_snapshot:
+          dist: [0, -5, -1, -6]
+          pass: "V"
+        narration: "edge (1->2, w=2) STILL relaxes: NEGATIVE CYCLE."
+      - step_id: 19
+        action: done
+        highlights: ["vcheck-banner"]
+        state_snapshot:
+          dist: [0, -5, -1, -6]
+          hasNegativeCycle: true
+        narration: "halt: negative cycle reachable from src."
+
+notes: |
+  Two presets, 39 events total (19 + 20). Both buffers were generated by
+  running the verified Python reference against the
+  canonical inputs and capturing every algorithmically meaningful state
+  transition. The canonical preset deliberately includes two no-op pass-end
+  events (steps 13, 15) to teach the early-termination optimization: pass 3
+  relaxes nothing, so a smart implementation breaks the loop here, but the
+  textbook V-1 algorithm runs all 4 passes for correctness's sake.

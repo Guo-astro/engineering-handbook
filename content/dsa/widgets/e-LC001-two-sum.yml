@@ -1,0 +1,80 @@
+# Editorial widget — LC 1 Two Sum
+# Editorial widgets animate ONE specific signature problem at fixed input.
+# Preset-only; no randomize, no edit.
+
+id: e-LC001-two-sum
+title: "Two Sum (LC 1) — optimal one-pass hash map"
+type: editorial-single-panel
+level: 1
+modes: [preset]
+
+# Editorial widgets do not expose user input — the canonical input is the lesson.
+caps:
+  array_length: { fixed: 2 }       # exactly the canonical input length
+
+commands:
+  - name: lookupComplement
+    payload: { i: 'integer', complement: 'integer', found: 'boolean', other_idx: 'integer | null' }
+    description: "Compute target - nums[i]; check hash; flash existing entry if found."
+  - name: insertHash
+    payload: { key: 'integer', value: 'integer' }
+    description: "Insert nums[i] -> i into the hash map row below."
+  - name: foundPair
+    payload: { i: 'integer', j: 'integer' }
+    description: "Both index cells turn solid green; result label shows [j, i]."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/e-LC001-two-sum-fallback.svg
+  keyframes_used: [0, 1, 4, 5]      # init, first lookup miss, the hit, terminate
+
+panels:
+  default:
+    chapter: "1.3"
+    primary_chapter: part-1-linear-data-structures/03-hash-maps
+    label: "Two Sum — one-pass hash"
+    canonical_input: |
+      nums = [3, 3]
+      target = 6
+    # Why [3,3]/6 not LC's [2,7,11,15]/9: the duplicate-key behavior is
+    # the most common interview bug. The widget surfaces it on step 4.
+    presets: []                      # editorial widgets are preset-as-canonical-input
+    n_steps: 6
+    keyframes:
+      - step: 0
+        kind: init
+        state: { i: null, hash: {}, found: false }
+        narration: "Walk the array left to right. For each element, look for its complement in the hash map."
+      - step: 1
+        kind: lookupComplement
+        payload: { i: 0, complement: 3, found: false, other_idx: null }
+        state: { i: 0, hash: {}, found: false }
+        narration: "i=0. complement=3. Hash is empty; miss."
+      - step: 2
+        kind: insertHash
+        payload: { key: 3, value: 0 }
+        state: { i: 0, hash: { 3: 0 }, found: false }
+        narration: "Insert 3 -> 0."
+      - step: 3
+        kind: lookupComplement
+        payload: { i: 1, complement: 3, found: true, other_idx: 0 }
+        state: { i: 1, hash: { 3: 0 }, found: false }
+        narration: "i=1. complement=3. Hit at index 0."
+      - step: 4
+        kind: foundPair
+        payload: { i: 0, j: 1 }
+        state: { i: 1, hash: { 3: 0 }, found: true }
+        narration: "Pair found: indices [0, 1]."
+      - step: 5
+        kind: terminate
+        state: { i: 1, hash: { 3: 0 }, found: true, result: [0, 1] }
+        narration: "Return [0, 1]. Total comparisons: 2. Hash inserts: 1."
+
+lc_id: 1
+difficulty: easy
+algorithm: hash-map-complement-lookup
+
+notes: |
+  Animates the optimal one-pass hash-map.
+  Brute force is NOT animated.
+  Reference editorial widget — every other editorial widget mirrors this shape.

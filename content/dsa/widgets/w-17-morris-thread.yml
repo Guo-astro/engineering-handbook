@@ -1,0 +1,195 @@
+# Morris inorder traversal — single-panel chapter widget
+# Animates the thread-install / visit / thread-restore mechanic on a
+# canonical 7-node BST. Status: complete.
+
+id: w-17-morris-thread
+title: "Morris inorder traversal (threading)"
+type: single-panel
+level: 2  # white-box: pred and thread overlay both visible alongside curr
+
+modes: [preset]  # fixed-input only per widget-architecture.md §6.13;
+                 # randomize/edit would not surface every Morris phase reliably
+
+caps:
+  tree_nodes: { min: 1, max: 15 }   # widget-architecture.md §3 tree default
+  values: { min: -99, max: 99 }
+
+commands:
+  - name: setCurr
+    payload: { nodeId: "integer | null" }
+    description: "Move the curr halo to the named node, or clear it on done."
+  - name: findPredecessor
+    payload: { from: "integer", visited: "integer[]", landedOn: "integer" }
+    description: "Animate the inner predecessor walk along the right-spine."
+  - name: installThread
+    payload: { from: "integer", to: "integer" }
+    description: "Render a dotted Wong-orange edge from from->to (pred.right = curr)."
+  - name: removeThread
+    payload: { from: "integer", to: "integer" }
+    description: "Fade out the dotted edge (pred.right = null)."
+  - name: visit
+    payload: { nodeId: "integer", value: "integer", outputIndex: "integer" }
+    description: "Highlight the node; append value to the output row."
+  - name: descendLeft
+    payload: { from: "integer", to: "integer" }
+    description: "curr advances to its left child."
+  - name: stepRight
+    payload: { from: "integer", to: "integer | null" }
+    description: "curr advances along its right pointer (real or threaded)."
+  - name: terminate
+    payload: { output: "integer[]" }
+    description: "Final state; output row complete; tree restored to original shape."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-17-morris-thread-fallback.svg
+  keyframes_used: [0, 5, 14, 23]   # init, first thread installed,
+                                    # mid-traversal one thread torn down, done
+
+panels:
+  default:
+    chapter: "6.2"
+    label: "Morris inorder on a 7-node BST"
+    canonical_input: |
+      tree = [4, 2, 6, 1, 3, null, 7]
+      # rendered:
+      #         4
+      #        / \
+      #       2   6
+      #      / \   \
+      #     1   3   7
+    presets:
+      - id: canonical-7-node
+        label: "Canonical (chapter example)"
+        input: { tree: [4, 2, 6, 1, 3, null, 7] }
+      - id: right-skewed
+        label: "Right-skewed (degenerate; thread never installed)"
+        input: { tree: [1, null, 2, null, 3, null, 4, null, 5] }
+      - id: left-skewed
+        label: "Left-skewed (worst predecessor-walk shape)"
+        input: { tree: [5, 4, null, 3, null, 2, null, 1] }
+      - id: lc-99-swap-adjacent
+        label: "LC 99 — adjacent swap (one violation)"
+        input: { tree: [3, 1, 4, null, null, 2], swapped: [4, 2] }
+      - id: lc-99-swap-far
+        label: "LC 99 — non-adjacent swap (two violations)"
+        input: { tree: [1, 3, null, null, 2], swapped: [1, 3] }
+    n_steps: 24
+
+    # Step buffer transcribed (verified by re-running
+    # morris_inorder(build_canonical()) on the §2.2 Python reference;
+    # output [1, 2, 3, 4, 6, 7] matches expected). Node labels assigned
+    # by in-order position so the renderer's letter map (A=leftmost,
+    # B=next-inorder, ...) matches: A=1, B=2, C=3, D=4 (root), E=6, F=7.
+    keyframes:
+      - step: 0
+        kind: init
+        state: { curr: D, output: [] }
+        narration: "Start: curr = root (D, val=4). Output buffer empty."
+      - step: 1
+        kind: findPredecessor
+        payload: { from: D, visited: [B, C], landedOn: C }
+        narration: "D has a left subtree. Walk the right-spine of that subtree to find the inorder predecessor: B, then C. Land on C (rightmost; C.right is null)."
+      - step: 2
+        kind: installThread
+        payload: { from: C, to: D }
+        narration: "Install thread C.right -> D. The dotted edge is the only mutation; it lets us return to D after the left subtree is done."
+      - step: 3
+        kind: descendLeft
+        payload: { from: D, to: B }
+        narration: "Descend left: curr -> B."
+      - step: 4
+        kind: findPredecessor
+        payload: { from: B, visited: [A], landedOn: A }
+        narration: "B has a left subtree. Predecessor walk lands on A (A.right is null)."
+      - step: 5
+        kind: installThread
+        payload: { from: A, to: B }
+        narration: "Install thread A.right -> B. Two threads now active: A->B and C->D."
+      - step: 6
+        kind: descendLeft
+        payload: { from: B, to: A }
+        narration: "Descend left: curr -> A."
+      - step: 7
+        kind: visit
+        payload: { nodeId: A, value: 1, outputIndex: 0 }
+        narration: "A.left is null. Visit: output the value 1. This is the leftmost node and the first inorder value."
+      - step: 8
+        kind: stepRight
+        payload: { from: A, to: B }
+        narration: "Step right: curr -> B (returned via the thread A.right -> B). The thread paid for itself."
+      - step: 9
+        kind: findPredecessor
+        payload: { from: B, visited: [A], landedOn: A }
+        narration: "B has a left subtree, so the algorithm walks the right-spine again. This time A.right -> B (the thread); the inner loop's `pred.right != curr` guard stops the walk."
+      - step: 10
+        kind: removeThread
+        payload: { from: A, to: B }
+        narration: "Thread already exists, so this is the second visit to B. Tear down A.right = null. Tree shape restored at this edge."
+      - step: 11
+        kind: visit
+        payload: { nodeId: B, value: 2, outputIndex: 1 }
+        narration: "Visit B: output 2. The order is unlink-then-visit so an external observer never sees a threaded tree at the visit moment."
+      - step: 12
+        kind: stepRight
+        payload: { from: B, to: C }
+        narration: "Step right: curr -> C."
+      - step: 13
+        kind: visit
+        payload: { nodeId: C, value: 3, outputIndex: 2 }
+        narration: "C.left is null. Visit: output 3."
+      - step: 14
+        kind: stepRight
+        payload: { from: C, to: D }
+        narration: "Step right: curr -> D, returned via the thread C.right -> D installed back at step 2."
+      - step: 15
+        kind: findPredecessor
+        payload: { from: D, visited: [B, C], landedOn: C }
+        narration: "Predecessor walk for D lands on C again, but this time C.right -> D (the thread). Second-visit branch."
+      - step: 16
+        kind: removeThread
+        payload: { from: C, to: D }
+        narration: "Tear down C.right = null. The original tree shape is fully restored at this edge."
+      - step: 17
+        kind: visit
+        payload: { nodeId: D, value: 4, outputIndex: 3 }
+        narration: "Visit D (the root): output 4. Halfway through inorder."
+      - step: 18
+        kind: stepRight
+        payload: { from: D, to: E }
+        narration: "Step right into D's right subtree: curr -> E (val=6)."
+      - step: 19
+        kind: visit
+        payload: { nodeId: E, value: 6, outputIndex: 4 }
+        narration: "E.left is null. Visit: output 6."
+      - step: 20
+        kind: stepRight
+        payload: { from: E, to: F }
+        narration: "Step right: curr -> F (val=7)."
+      - step: 21
+        kind: visit
+        payload: { nodeId: F, value: 7, outputIndex: 5 }
+        narration: "F.left is null. Visit: output 7."
+      - step: 22
+        kind: stepRight
+        payload: { from: F, to: null }
+        narration: "F.right is null. curr -> null."
+      - step: 23
+        kind: terminate
+        payload: { output: [1, 2, 3, 4, 6, 7] }
+        narration: "Outer loop exits. Output: [1, 2, 3, 4, 6, 7]. Both threads installed during the walk have been torn down; the tree is bit-for-bit identical to the input."
+
+notes: |
+  Single-panel chapter widget for 6.2. Renders the tree with Wong palette
+  (current = orange halo, visited = sky blue, predecessor = reddish
+  purple, threaded edge = dotted Wong-orange). Two read-only side panels:
+  the curr/pred/output state row, and a thread-count gauge that peaks at
+  2 (steps 5-9) then drains. Reduced-motion fallback uses keyframes
+  [0, 5, 14, 23], chosen so each shows a structurally distinct moment:
+  empty start, two threads coexisting, mid-tear-down, full restoration.
+
+  Per widget-architecture.md §6.13, this widget is preset-only; randomize
+  and edit modes are not exposed because constructing trees that
+  exercise every Morris phase (link, unlink, visit-leaf-left,
+  visit-after-unlink) requires hand-curated structure, not random
+  generation.

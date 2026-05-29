@@ -1,0 +1,348 @@
+# LRU Cache — chapter widget for 5.5
+# Single-panel widget with two synchronized sub-views (hash map + doubly linked list)
+# animating LC 146 on the canonical capacity=2 sequence.
+
+id: w-15-lru-cache
+title: "LRU cache (hash map + doubly linked list)"
+type: dual-panel-shared
+level: 1
+modes: [preset, edit]
+
+caps:
+  capacity: { min: 1, max: 5 }
+  ops_length: { min: 1, max: 12 }
+  total_steps: { max: 30 }
+
+commands:
+  - name: init
+    payload: { capacity: 'integer' }
+    description: "Create empty cache; render head <-> tail sentinels and empty map row."
+  - name: insert_no_evict
+    payload: { key: 'integer', value: 'integer' }
+    description: "Splice new node after head; add map[key] = node. No eviction."
+  - name: get_promote
+    payload: { key: 'integer', value: 'integer' }
+    description: "Hit: detach node from current position; splice after head. Highlight the active node."
+  - name: get_miss
+    payload: { key: 'integer' }
+    description: "Map lookup misses; return -1; no list mutation."
+  - name: insert_evict
+    payload: { key: 'integer', value: 'integer', evicted_key: 'integer' }
+    description: "Highlight tail.prev as victim for one tick; remove from list and map; create and splice new node after head."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-15-lru-cache-fallback.svg
+  keyframes_used: [0, 3, 6, 9]
+
+panels:
+  default:
+    chapter: "5.5"
+    label: "LRU cache trace on the canonical capacity=2 sequence (LC 146)"
+    canonical_input: |
+      capacity = 2
+      ops = [put(1,1), put(2,2), get(1), put(3,3), get(2),
+             put(4,4), get(1), get(3), get(4)]
+    presets:
+      - id: lc146_canonical
+        label: "LC 146 canonical (cap=2, 9 ops)"
+        input:
+          capacity: 2
+          ops:
+            - "put(1,1)"
+            - "put(2,2)"
+            - "get(1)"
+            - "put(3,3)"
+            - "get(2)"
+            - "put(4,4)"
+            - "get(1)"
+            - "get(3)"
+            - "get(4)"
+      - id: cap1_thrash
+        label: "Capacity 1 (every put evicts)"
+        input:
+          capacity: 1
+          ops:
+            - "put(1,1)"
+            - "get(1)"
+            - "put(2,2)"
+            - "get(1)"
+            - "get(2)"
+      - id: update_promotes
+        label: "Update existing key promotes to MRU"
+        input:
+          capacity: 2
+          ops:
+            - "put(1,1)"
+            - "put(2,2)"
+            - "put(1,11)"
+            - "put(3,3)"
+            - "get(2)"
+    n_steps: 10
+    keyframes:
+      - step: 0
+        kind: init
+        payload: { capacity: 2 }
+        state:
+          phase: "init"
+          op: "init(capacity=2)"
+          map_view: {}
+          dll_view: []
+          mru: null
+          lru: null
+        narration: "Empty cache. head <-> tail (only sentinels). Map empty."
+      - step: 1
+        kind: insert_no_evict
+        payload: { key: 1, value: 1 }
+        state:
+          phase: "insert-no-evict"
+          op: "put(1,1)"
+          map_view: { 1: "node@1" }
+          dll_view: [1]
+          mru: 1
+          lru: 1
+          evicted: null
+        narration: "key 1 missing; size 0 < cap 2, no evict; create node, splice after head, map[1] = node."
+      - step: 2
+        kind: insert_no_evict
+        payload: { key: 2, value: 2 }
+        state:
+          phase: "insert-no-evict"
+          op: "put(2,2)"
+          map_view: { 1: "node@1", 2: "node@2" }
+          dll_view: [2, 1]
+          mru: 2
+          lru: 1
+          evicted: null
+        narration: "key 2 missing; size 1 < cap 2, no evict; splice node@2 after head; node@1 slides toward tail."
+      - step: 3
+        kind: get_promote
+        payload: { key: 1, value: 1 }
+        state:
+          phase: "get-promote"
+          op: "get(1)"
+          result: 1
+          map_view: { 1: "node@1", 2: "node@2" }
+          dll_view: [1, 2]
+          mru: 1
+          lru: 2
+        narration: "map[1] hit; remove node@1 from middle; add to front. node@2 becomes LRU."
+      - step: 4
+        kind: insert_evict
+        payload: { key: 3, value: 3, evicted_key: 2 }
+        state:
+          phase: "insert-evict"
+          op: "put(3,3)"
+          map_view: { 1: "node@1", 3: "node@3" }
+          dll_view: [3, 1]
+          mru: 3
+          lru: 1
+          evicted: 2
+        narration: "key 3 missing; size 2 == cap 2; evict tail.prev (node@2): remove node@2, delete map[2]; create node@3, splice after head."
+      - step: 5
+        kind: get_miss
+        payload: { key: 2 }
+        state:
+          phase: "get-miss"
+          op: "get(2)"
+          result: -1
+          map_view: { 1: "node@1", 3: "node@3" }
+          dll_view: [3, 1]
+          mru: 3
+          lru: 1
+        narration: "map[2] missing (evicted on step 4); return -1; no list mutation."
+      - step: 6
+        kind: insert_evict
+        payload: { key: 4, value: 4, evicted_key: 1 }
+        state:
+          phase: "insert-evict"
+          op: "put(4,4)"
+          map_view: { 3: "node@3", 4: "node@4" }
+          dll_view: [4, 3]
+          mru: 4
+          lru: 3
+          evicted: 1
+        narration: "key 4 missing; size 2 == cap 2; evict tail.prev (node@1): remove node@1, delete map[1]; create node@4, splice after head."
+      - step: 7
+        kind: get_miss
+        payload: { key: 1 }
+        state:
+          phase: "get-miss"
+          op: "get(1)"
+          result: -1
+          map_view: { 3: "node@3", 4: "node@4" }
+          dll_view: [4, 3]
+          mru: 4
+          lru: 3
+        narration: "map[1] missing (evicted on step 6); return -1."
+      - step: 8
+        kind: get_promote
+        payload: { key: 3, value: 3 }
+        state:
+          phase: "get-promote"
+          op: "get(3)"
+          result: 3
+          map_view: { 3: "node@3", 4: "node@4" }
+          dll_view: [3, 4]
+          mru: 3
+          lru: 4
+        narration: "map[3] hit; remove node@3 from tail end; add to front. node@4 slides toward tail."
+      - step: 9
+        kind: get_promote
+        payload: { key: 4, value: 4 }
+        state:
+          phase: "get-final"
+          op: "get(4)"
+          result: 4
+          map_view: { 3: "node@3", 4: "node@4" }
+          dll_view: [4, 3]
+          mru: 4
+          lru: 3
+        narration: "map[4] hit; remove node@4 from tail end; add to front. node@3 slides toward tail."
+
+  design_framing:
+    chapter: "13.0"
+    label: "API contract + capacity counter + eviction event (LC 146 cap=3, 9 ops)"
+    canonical_input: |
+      capacity = 3
+      ops = [put(1,100), put(2,200), put(3,300), get(1),
+             put(4,400), get(2), put(1,999), put(5,500), get(3)]
+    presets:
+      - id: design_canonical
+        label: "Design framing — cap=3, 9 ops surfacing every API outcome"
+        input:
+          capacity: 3
+          ops:
+            - "put(1,100)"
+            - "put(2,200)"
+            - "put(3,300)"
+            - "get(1)"
+            - "put(4,400)"
+            - "get(2)"
+            - "put(1,999)"
+            - "put(5,500)"
+            - "get(3)"
+    n_steps: 9
+    keyframes:
+      - step: 0
+        kind: insert_no_evict
+        payload: { key: 1, value: 100 }
+        state:
+          phase: "fill"
+          op: "put(1,100)"
+          header: "[capacity 3 | size 1/3 | last op: put(1,100)]"
+          dll_view: [1]
+          mru: 1
+          lru: 1
+          evicted: null
+        narration: "put(1,100): cache empty; insert at front; size 1/3."
+      - step: 1
+        kind: insert_no_evict
+        payload: { key: 2, value: 200 }
+        state:
+          phase: "fill"
+          op: "put(2,200)"
+          header: "[capacity 3 | size 2/3 | last op: put(2,200)]"
+          dll_view: [2, 1]
+          mru: 2
+          lru: 1
+          evicted: null
+        narration: "put(2,200): insert at front; size 2/3."
+      - step: 2
+        kind: insert_no_evict
+        payload: { key: 3, value: 300 }
+        state:
+          phase: "fill"
+          op: "put(3,300)"
+          header: "[capacity 3 | size 3/3 | full]"
+          dll_view: [3, 2, 1]
+          mru: 3
+          lru: 1
+          evicted: null
+        narration: "put(3,300): insert at front; size 3/3 (full)."
+      - step: 3
+        kind: get_promote
+        payload: { key: 1, value: 100 }
+        state:
+          phase: "hit"
+          op: "get(1)"
+          result: 100
+          header: "[capacity 3 | size 3/3 | last op: get(1) -> 100]"
+          dll_view: [1, 3, 2]
+          mru: 1
+          lru: 2
+        narration: "get(1): hit; move-to-front refreshes recency. Key 2 is now LRU."
+      - step: 4
+        kind: insert_evict
+        payload: { key: 4, value: 400, evicted_key: 2 }
+        state:
+          phase: "evict"
+          op: "put(4,400)"
+          header: "[capacity 3 | size 3/3 | last op: put(4,400) -> evicted 2]"
+          dll_view: [4, 1, 3]
+          mru: 4
+          lru: 3
+          evicted: 2
+        narration: "put(4,400): full + miss; evict LRU (key 2); insert 4 at front."
+      - step: 5
+        kind: get_miss
+        payload: { key: 2 }
+        state:
+          phase: "final-miss"
+          op: "get(2)"
+          result: -1
+          header: "[capacity 3 | size 3/3 | last op: get(2) -> -1]"
+          dll_view: [4, 1, 3]
+          mru: 4
+          lru: 3
+        narration: "get(2): -1; key 2 was evicted at step 4."
+      - step: 6
+        kind: get_promote
+        payload: { key: 1, value: 999 }
+        state:
+          phase: "update"
+          op: "put(1,999)"
+          header: "[capacity 3 | size 3/3 | last op: put(1,999) — update, no evict]"
+          dll_view: [1, 4, 3]
+          mru: 1
+          lru: 3
+        narration: "put(1,999): existing key; update value AND refresh recency. No eviction."
+      - step: 7
+        kind: insert_evict
+        payload: { key: 5, value: 500, evicted_key: 3 }
+        state:
+          phase: "repeat-evict"
+          op: "put(5,500)"
+          header: "[capacity 3 | size 3/3 | last op: put(5,500) -> evicted 3]"
+          dll_view: [5, 1, 4]
+          mru: 5
+          lru: 4
+          evicted: 3
+        narration: "put(5,500): full + miss; evict LRU (key 3); insert 5 at front."
+      - step: 8
+        kind: get_miss
+        payload: { key: 3 }
+        state:
+          phase: "final-miss"
+          op: "get(3)"
+          result: -1
+          header: "[capacity 3 | size 3/3 | last op: get(3) -> -1]"
+          dll_view: [5, 1, 4]
+          mru: 5
+          lru: 4
+        narration: "get(3): -1; key 3 was evicted at step 7."
+
+selector_default: default
+
+notes: |
+  Dual-panel-shared widget. Panel `default` (chapter 5.5) foregrounds
+  the pointer-rewiring mechanics on the LC 146 canonical capacity=2
+  sequence; 10 steps. Panel `design_framing` (chapter 13.0) renders the
+  same algorithm at capacity=3 over a 9-op sequence chosen to surface
+  every public-API outcome (hit, miss, evict, in-place update, post-evict
+  miss, repeat-evict, final miss). The headline bar makes the API
+  contract the reader's focus rather than the four-pointer-rewire dance.
+  Wong palette: orange for the active node, sky blue for touched, vermilion
+  for the about-to-evict node held for one tick before removal, bluish
+  green for the post-op MRU, yellow for the post-op LRU. aria-live="polite"
+  announces each step using the narration field.

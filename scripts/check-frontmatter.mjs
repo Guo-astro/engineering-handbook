@@ -21,7 +21,29 @@ const REQUIRED_FIELDS = [
 // Trade-off pages live outside the 12-part curriculum and use a simpler schema.
 const TRADEOFF_REQUIRED_FIELDS = ['title', 'description', 'related'];
 
+// DSA per-genre required fields. Chapter and editorial frontmatter shapes are
+// captured by sample files at content/dsa/part-1-linear-data-structures/00-arrays.md
+// (chapter), content/dsa/editorials/LC-001-two-sum.md (editorial), and
+// content/dsa/patterns/P-01-recursion-vs-iteration.md (pattern decision page).
+// `languages` is intentionally optional — Part 14 interview-framework chapters
+// have no code samples (`languages: []` or no field at all). When present and
+// non-empty, every entry must be one of python/java/cpp/go.
+const DSA_CHAPTER_REQUIRED_FIELDS = [
+  'title', 'description', 'slug', 'part', 'chapter',
+  'difficulty', 'prerequisites', 'date_updated',
+];
+const DSA_EDITORIAL_REQUIRED_FIELDS = [
+  'lc_id', 'title', 'slug', 'primary_chapter',
+  'difficulty', 'date_updated', 'languages',
+];
+const DSA_PATTERN_REQUIRED_FIELDS = [
+  'pattern_id', 'title', 'slug', 'type',
+  'date_updated', 'difficulty',
+];
+
 const VALID_DIFFICULTY = ['beginner', 'intermediate', 'advanced'];
+const VALID_DSA_EDITORIAL_DIFFICULTY = ['easy', 'medium', 'hard'];
+const VALID_DSA_LANGUAGES = new Set(['python', 'java', 'cpp', 'go']);
 
 // Canonical tag vocabulary. Keep in sync with STYLE_GUIDE.md "Canonical tags".
 // `tags:` is for topic concepts. Tool names live in `technologies:` instead.
@@ -86,7 +108,7 @@ const MODULE_REGISTRY = new Set();
 const stripQuotes = (s) => s.replace(/^["']|["']$/g, '');
 
 function registerModule(file) {
-  const m = file.match(/content\/part-(\d+)-[^/]+\/(\d+)-([^/]+)\.md$/);
+  const m = file.match(/content\/hld\/part-(\d+)-[^/]+\/(\d+)-([^/]+)\.md$/);
   if (!m) return;
   const [, part, idx, slug] = m;
   MODULE_REGISTRY.add(`${part}.${parseInt(idx, 10)}-${slug}`);
@@ -139,9 +161,176 @@ function isMissing(fm, field) {
   return !(field in fm) || fm[field] === undefined || fm[field] === '';
 }
 
+function classify(file) {
+  // Normalize separators so we don't double-check Windows vs POSIX paths.
+  // glob() yields repo-relative paths (no leading "/"), so anchor patterns to
+  // "content/..." rather than "/content/...".
+  const norm = file.replace(/\\/g, '/');
+  if (norm.includes('content/hld/trade-offs/')) return 'hld-tradeoff';
+  if (norm.includes('content/hld/')) return 'hld-chapter';
+  if (norm.includes('content/dsa/editorials/')) return 'dsa-editorial';
+  if (norm.includes('content/dsa/patterns/')) return 'dsa-pattern';
+  if (norm.includes('content/dsa/widgets/')) return 'dsa-widget-doc';
+  if (/content\/dsa\/part-\d+/.test(norm)) return 'dsa-chapter';
+  return 'unknown';
+}
+
+function validateDsaChapter(fm, file) {
+  const errors = [];
+
+  for (const field of DSA_CHAPTER_REQUIRED_FIELDS) {
+    if (isMissing(fm, field)) errors.push(`missing required field: ${field}`);
+  }
+
+  if (fm.part !== undefined) {
+    const partNum = Number(fm.part);
+    if (!Number.isInteger(partNum) || partNum < 0 || partNum > 14) {
+      errors.push(`part must be integer 0-14, got ${fm.part}`);
+    }
+  }
+
+  if (fm.chapter !== undefined) {
+    const chapterNum = Number(fm.chapter);
+    if (!Number.isInteger(chapterNum) || chapterNum < 0) {
+      errors.push(`chapter must be a non-negative integer, got ${fm.chapter}`);
+    }
+  }
+
+  if (fm.difficulty && !VALID_DIFFICULTY.includes(fm.difficulty)) {
+    errors.push(`difficulty must be one of ${VALID_DIFFICULTY.join(', ')}, got ${fm.difficulty}`);
+  }
+
+  // slug must equal the filename without `.md`.
+  if (fm.slug) {
+    const expected = file.replace(/\\/g, '/').split('/').pop().replace(/\.md$/, '');
+    if (fm.slug !== expected) {
+      errors.push(`slug "${fm.slug}" must match filename basename "${expected}"`);
+    }
+  }
+
+  // languages is optional (interview-framework chapters omit it) but if
+  // present, every entry must be one of python/java/cpp/go.
+  if (fm.languages !== undefined) {
+    if (!Array.isArray(fm.languages)) {
+      errors.push(`languages must be an array, got ${typeof fm.languages}`);
+    } else {
+      for (const lang of fm.languages) {
+        if (!VALID_DSA_LANGUAGES.has(lang)) {
+          errors.push(`languages entry "${lang}" must be one of python, java, cpp, go`);
+        }
+      }
+    }
+  }
+
+  // canonical_test is optional. When present, it's either an LC-NNN id
+  // (most chapters) or a free-form test-fixture slug (a few hand-rolled
+  // chapters whose canonical test isn't a LeetCode problem).
+  // We only reject the empty-string accident; both forms are allowed.
+  if (fm.canonical_test !== undefined && fm.canonical_test === '') {
+    errors.push('canonical_test, if present, must be non-empty (LC-NNN or fixture slug)');
+  }
+
+  // Prereqs are either a full "part-N-slug/NN-chapter-slug" form (cross-part)
+  // or a same-part bare "NN-chapter-slug" form. Both are accepted in the
+  // existing corpus.
+  if (Array.isArray(fm.prerequisites)) {
+    for (const p of fm.prerequisites) {
+      const fullForm = /^part-\d+-[a-z0-9-]+\/\d+-[a-z0-9-]+$/.test(p);
+      const samePart = /^\d+-[a-z0-9-]+$/.test(p);
+      if (!fullForm && !samePart) {
+        errors.push(`prerequisites entry "${p}" must be "part-N-slug/NN-chapter-slug" or "NN-chapter-slug"`);
+      }
+    }
+  }
+
+  return errors;
+}
+
+function validateDsaEditorial(fm, file) {
+  const errors = [];
+
+  for (const field of DSA_EDITORIAL_REQUIRED_FIELDS) {
+    if (isMissing(fm, field)) errors.push(`missing required field: ${field}`);
+  }
+
+  if (fm.slug) {
+    const expected = file.replace(/\\/g, '/').split('/').pop().replace(/\.md$/, '');
+    if (fm.slug !== expected) {
+      errors.push(`slug "${fm.slug}" must match filename basename "${expected}"`);
+    }
+    if (!/^LC-\d+(-[a-z0-9-]+)?$/.test(fm.slug)) {
+      errors.push(`slug "${fm.slug}" must match LC-NNN-slug pattern`);
+    }
+  }
+
+  if (fm.lc_id !== undefined) {
+    const lcNum = Number(fm.lc_id);
+    if (!Number.isInteger(lcNum) || lcNum <= 0) {
+      errors.push(`lc_id must be a positive integer, got ${fm.lc_id}`);
+    }
+  }
+
+  if (fm.difficulty && !VALID_DSA_EDITORIAL_DIFFICULTY.includes(fm.difficulty)) {
+    errors.push(
+      `difficulty must be one of ${VALID_DSA_EDITORIAL_DIFFICULTY.join(', ')} (LeetCode shape), got ${fm.difficulty}`
+    );
+  }
+
+  if (fm.languages !== undefined) {
+    if (!Array.isArray(fm.languages) || fm.languages.length === 0) {
+      errors.push('languages must be a non-empty array');
+    } else {
+      for (const lang of fm.languages) {
+        if (!VALID_DSA_LANGUAGES.has(lang)) {
+          errors.push(`languages entry "${lang}" must be one of python, java, cpp, go`);
+        }
+      }
+    }
+  }
+
+  if (fm.primary_chapter && !/^part-\d+-[a-z0-9-]+\/\d+-[a-z0-9-]+$/.test(fm.primary_chapter)) {
+    errors.push(`primary_chapter "${fm.primary_chapter}" must be "part-N-slug/NN-chapter-slug"`);
+  }
+
+  return errors;
+}
+
+function validateDsaPattern(fm, file) {
+  const errors = [];
+
+  for (const field of DSA_PATTERN_REQUIRED_FIELDS) {
+    if (isMissing(fm, field)) errors.push(`missing required field: ${field}`);
+  }
+
+  if (fm.slug) {
+    const expected = file.replace(/\\/g, '/').split('/').pop().replace(/\.md$/, '');
+    if (fm.slug !== expected) {
+      errors.push(`slug "${fm.slug}" must match filename basename "${expected}"`);
+    }
+  }
+
+  if (fm.pattern_id && !/^P-\d+[a-z]?$/.test(fm.pattern_id)) {
+    errors.push(`pattern_id "${fm.pattern_id}" must match P-NN or P-NNa form`);
+  }
+
+  if (fm.difficulty && !VALID_DIFFICULTY.includes(fm.difficulty)) {
+    errors.push(`difficulty must be one of ${VALID_DIFFICULTY.join(', ')}, got ${fm.difficulty}`);
+  }
+
+  return errors;
+}
+
 function validate(fm, file) {
   const errors = [];
-  const isTradeOff = file.includes('/trade-offs/') || file.includes('\\trade-offs\\');
+  const kind = classify(file);
+
+  if (kind === 'dsa-chapter')   return validateDsaChapter(fm, file);
+  if (kind === 'dsa-editorial') return validateDsaEditorial(fm, file);
+  if (kind === 'dsa-pattern')   return validateDsaPattern(fm, file);
+  // Widget README is documentation; no frontmatter required, no checks.
+  if (kind === 'dsa-widget-doc') return errors;
+
+  const isTradeOff = kind === 'hld-tradeoff';
 
   if (isTradeOff) {
     for (const field of TRADEOFF_REQUIRED_FIELDS) {
@@ -246,6 +435,13 @@ function validate(fm, file) {
 }
 
 async function checkFile(file) {
+  // Skip prose READMEs that have no frontmatter and aren't part of the curriculum.
+  const norm = file.replace(/\\/g, '/');
+  if (norm.endsWith('content/dsa/widgets/README.md') ||
+      norm.endsWith('content/dsa/README.md')) {
+    return;
+  }
+
   fileCount++;
   const contents = await readFile(file, 'utf8');
 
@@ -279,7 +475,11 @@ async function checkFile(file) {
 
 async function main() {
   const files = [];
-  for await (const f of glob('content/**/*.md')) files.push(f);
+  // Both books share this validator. classify() in validate() dispatches each
+  // file to its book/genre-specific schema branch (HLD chapter, HLD trade-off,
+  // DSA chapter, DSA editorial, DSA pattern decision page).
+  for await (const f of glob('content/hld/**/*.md')) files.push(f);
+  for await (const f of glob('content/dsa/**/*.md')) files.push(f);
 
   if (files.length === 0) {
     console.log('No content files found.');

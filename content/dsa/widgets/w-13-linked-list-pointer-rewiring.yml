@@ -1,0 +1,516 @@
+# Linked list pointer rewiring + reversal — three-way shared widget
+# Authoritative spec at runtime; sibling chapters 5.0 / 5.1 / 5.2.
+#
+# Status: scaffold (panel-c keyframes complete; panel-a, panel-b pending
+# until chapters 5.1 and 5.0 ship).
+
+id: w-13-linked-list-pointer-rewiring
+title: "Linked list pointer rewiring"
+type: three-way-shared
+level: 1
+modes: [preset, randomize, edit]
+
+caps:
+  list_length: { min: 1, max: 16 }
+  values: { min: -99, max: 99 }
+  k: { min: 1, max: 16 }
+
+commands:
+  - name: setPointer
+    payload: { name: "'prev' | 'curr' | 'next' | 'group_prev' | 'kth' | 'group_next' | 'cursor'", nodeId: "integer | null" }
+    description: "Move the named labeled pointer to the given node. Animates a 1-cell hop."
+  - name: link
+    payload: { from: "integer", to: "integer | null" }
+    description: "Draw or rewire the .next edge from `from` to `to`."
+  - name: unlink
+    payload: { from: "integer", to: "integer" }
+    description: "Erase the .next edge from `from` to `to`. Used to telegraph rewires."
+  - name: peekStep
+    payload: { k_remaining: "integer", cursor_at: "integer | null" }
+    description: "Advance the peek-ahead cursor; decrement k_remaining; flash on under-run."
+  - name: spliceSeam
+    payload: { from: "integer", to: "integer" }
+    description: "Forced keyframe: rewire group_prev.next to kth (the seam re-stitch)."
+  - name: groupComplete
+    payload: { group_index: "integer" }
+    description: "Forced keyframe: this group's reversal + splice + advance is done."
+  - name: terminate
+    payload: { reason: "'peek-under-run' | 'empty'" }
+    description: "Final state; trailing run < k highlighted as untouched if applicable."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-13-linked-list-pointer-rewiring-fallback.svg
+  keyframes_used: [0, "n_steps/3", "2*n_steps/3", "n_steps-1"]
+
+panels:
+  # panel-a (chapter 5.0, dummy node + LC 707 design linked list):
+  # complete; trace transcribed from the chapter prose at lines 142-147.
+  # panel-b (chapter 5.1, single-list reversal): complete; trace
+  # transcribed from the verified Python reference for LC 206.
+  panel-a:
+    chapter: "5.0"
+    label: "Dummy-node linked list (LC 707 op sequence)"
+    canonical_input: |
+      values = [1, 3, 2]
+      # Final node order shown left-to-right; the cells row materializes all
+      # three nodes upfront, the trace re-wires the dummy.next chain
+      # through them as the LC 707 ops execute.
+      ops = [
+        addAtHead(1),
+        addAtTail(3),
+        addAtIndex(1, 2),
+        get(1),
+        deleteAtIndex(1),
+        get(1),
+      ]
+    presets:
+      - id: lc_707_canonical
+        label: "LC 707 chapter trace (six ops on values 1, 3, 2)"
+        input:
+          values: [1, 3, 2]
+          ops:
+            - "addAtHead(1)"
+            - "addAtTail(3)"
+            - "addAtIndex(1, 2)"
+            - "get(1)"
+            - "deleteAtIndex(1)"
+            - "get(1)"
+    n_steps: 14
+    # The cells row renders dummy + nodes 1, 3, 2 in that order so the
+    # mid-insert at index 1 routes node 2 between nodes 1 and 3 with a
+    # natural arc above the cells. The static_fallback's four pivotal
+    # frames land on:
+    #   step 0  — empty sentinel (dummy alone, nothing linked).
+    #   step 4  — both inserts done; chain dummy -> 1 -> 3.
+    #   step 8  — mid-insert done; chain dummy -> 1 -> 2 -> 3.
+    #   step 13 — mid-delete done; chain dummy -> 1 -> 3 again.
+    keyframes:
+      - step: 0
+        kind: init
+        state: { group_prev: "dummy", phase: "empty" }
+        narration: "Empty list. dummy.next = null; length = 0. The sentinel sits alone; nodes 1, 3, 2 exist as unlinked cells off to the right."
+      - step: 1
+        kind: setPointer
+        payload: { name: prev, nodeId: "dummy" }
+        state: { phase: "addAtHead(1)" }
+        narration: "addAtHead(1) routes through addAtIndex(0, 1). prev = dummy."
+      - step: 2
+        kind: link
+        payload: { from: "dummy", to: 1 }
+        state: { phase: "addAtHead(1)" }
+        narration: "Allocate node 1; rewire dummy.next = node 1; length = 1. Chain: dummy -> 1."
+      - step: 3
+        kind: setPointer
+        payload: { name: prev, nodeId: 1 }
+        state: { phase: "addAtTail(3)" }
+        narration: "addAtTail(3) routes through addAtIndex(1, 3). Walk prev once to node 1."
+      - step: 4
+        kind: link
+        payload: { from: 1, to: 3 }
+        state: { phase: "addAtTail(3)" }
+        narration: "Allocate node 3; rewire node 1's next from null to node 3; length = 2. Chain: dummy -> 1 -> 3."
+      - step: 5
+        kind: setPointer
+        payload: { name: prev, nodeId: "dummy" }
+        state: { phase: "addAtIndex(1, 2)" }
+        narration: "addAtIndex(1, 2). prev = dummy."
+      - step: 6
+        kind: setPointer
+        payload: { name: prev, nodeId: 1 }
+        state: { phase: "addAtIndex(1, 2)" }
+        narration: "Advance prev once to node 1. The new node will splice between prev (1) and prev.next (3)."
+      - step: 7
+        kind: link
+        payload: { from: 2, to: 3 }
+        state: { phase: "addAtIndex(1, 2)" }
+        narration: "Snapshot first: node 2's next = prev.next = node 3. The new node now points where prev used to point. The original chain is unchanged at this instant."
+      - step: 8
+        kind: link
+        payload: { from: 1, to: 2 }
+        state: { phase: "addAtIndex(1, 2)" }
+        narration: "Mutate second: rewire prev.next from node 3 to node 2; length = 3. Chain: dummy -> 1 -> 2 -> 3. Node 2 is spliced; the snapshot-first / mutate-second order is what kept node 3 reachable."
+      - step: 9
+        kind: setPointer
+        payload: { name: cursor, nodeId: 2 }
+        state: { phase: "get(1)" }
+        narration: "get(1). Walk one step from dummy.next (node 1) to land on node 2. Return 2."
+      - step: 10
+        kind: setPointer
+        payload: { name: prev, nodeId: "dummy" }
+        state: { phase: "deleteAtIndex(1)" }
+        narration: "deleteAtIndex(1). prev = dummy."
+      - step: 11
+        kind: setPointer
+        payload: { name: prev, nodeId: 1 }
+        state: { phase: "deleteAtIndex(1)" }
+        narration: "Advance prev once to node 1. Victim = prev.next = node 2."
+      - step: 12
+        kind: link
+        payload: { from: 1, to: 3 }
+        state: { phase: "deleteAtIndex(1)" }
+        narration: "Rewire prev.next = victim.next: node 1's next jumps from node 2 to node 3. length = 2. Node 2 is now orphaned (not pointed at from anywhere reachable from dummy); GC reclaims it. Chain: dummy -> 1 -> 3."
+      - step: 13
+        kind: setPointer
+        payload: { name: cursor, nodeId: 3 }
+        state: { phase: "get(1)", result: [1, 3] }
+        narration: "get(1) again. Same one-step walk from dummy.next; this time it lands on node 3. Return 3. The sentinel made every insert and delete a uniform two-line rewire."
+
+  panel-b:
+    chapter: "5.1"
+    label: "Single-list reversal (LC 206, prev/curr/next three-pointer rewire)"
+    canonical_input: |
+      head = [1, 2, 3, 4]
+      problem: "LC 206 — reverse the list in place; return the new head"
+    presets:
+      - id: lc_206_canonical
+        label: "LC 206 canonical (4 nodes)"
+        input: { head: [1, 2, 3, 4] }
+      - id: single_node
+        label: "Single node (n=1; loop body never executes)"
+        input: { head: [7] }
+    n_steps: 20
+    # Trace generated by running the verified Python reference
+    # (content/dsa/part-5-linked-lists/01-reversal-patterns/lc-206/sol.py)
+    # on canonical input head=[1,2,3,4]. Each loop iteration is split into
+    # three atomic keyframes — snapshot nxt, rewire curr.next = prev,
+    # advance prev = curr; curr = nxt — so the pointer chips animate the
+    # three-pointer rewire instead of teleporting once per iteration.
+    # Pivotal frames for the static fallback land on: initial chain
+    # (step 0), first rewire 1->null (step 5), midway prefix 3->2 (step 11),
+    # final reversed chain with curr=null (step 18).
+    keyframes:
+      - step: 0
+        kind: init
+        state: { group_prev: "dummy", phase: "init" }
+        narration: "Initial chain: dummy -> 1 -> 2 -> 3 -> 4 -> null. The dummy is the chapter convention for showing a stable handle; LC 206 itself doesn't need it. We'll reverse all four nodes in place."
+      - step: 1
+        kind: setPointer
+        payload: { name: prev, nodeId: null }
+        state: { phase: "loop" }
+        narration: "prev = null. Every reversed-list tail terminates at null; we're seeding that termination."
+      - step: 2
+        kind: setPointer
+        payload: { name: curr, nodeId: 1 }
+        state: { phase: "loop" }
+        narration: "curr = head = node 1. The three-pointer rewire (prev / curr / nxt) starts here."
+      - step: 3
+        kind: setPointer
+        payload: { name: nxt, nodeId: 2 }
+        state: { phase: "iter-1" }
+        narration: "Iter 1 snapshot: nxt = curr.next = node 2. Capture the rest of the chain before clobbering curr.next."
+      - step: 4
+        kind: link
+        payload: { from: 1, to: null }
+        state: { phase: "iter-1" }
+        narration: "Iter 1 rewire: curr.next = prev = null. Node 1 now points at null; it is the new tail of the reversed list."
+      - step: 5
+        kind: setPointer
+        payload: { name: prev, nodeId: 1 }
+        state: { phase: "iter-1" }
+        narration: "Iter 1 advance (1/2): prev = curr = node 1."
+      - step: 6
+        kind: setPointer
+        payload: { name: curr, nodeId: 2 }
+        state: { phase: "iter-1" }
+        narration: "Iter 1 advance (2/2): curr = nxt = node 2. The window slides right by one node."
+      - step: 7
+        kind: setPointer
+        payload: { name: nxt, nodeId: 3 }
+        state: { phase: "iter-2" }
+        narration: "Iter 2 snapshot: nxt = curr.next = node 3."
+      - step: 8
+        kind: link
+        payload: { from: 2, to: 1 }
+        state: { phase: "iter-2" }
+        narration: "Iter 2 rewire: node 2's next jumps from node 3 to prev (node 1). Reversed prefix: 2 -> 1 -> null."
+      - step: 9
+        kind: setPointer
+        payload: { name: prev, nodeId: 2 }
+        state: { phase: "iter-2" }
+        narration: "Iter 2 advance (1/2): prev = curr = node 2."
+      - step: 10
+        kind: setPointer
+        payload: { name: curr, nodeId: 3 }
+        state: { phase: "iter-2" }
+        narration: "Iter 2 advance (2/2): curr = nxt = node 3."
+      - step: 11
+        kind: setPointer
+        payload: { name: nxt, nodeId: 4 }
+        state: { phase: "iter-3" }
+        narration: "Iter 3 snapshot: nxt = curr.next = node 4."
+      - step: 12
+        kind: link
+        payload: { from: 3, to: 2 }
+        state: { phase: "iter-3" }
+        narration: "Iter 3 rewire: node 3's next jumps from node 4 to prev (node 2). Reversed prefix: 3 -> 2 -> 1 -> null."
+      - step: 13
+        kind: setPointer
+        payload: { name: prev, nodeId: 3 }
+        state: { phase: "iter-3" }
+        narration: "Iter 3 advance (1/2): prev = curr = node 3."
+      - step: 14
+        kind: setPointer
+        payload: { name: curr, nodeId: 4 }
+        state: { phase: "iter-3" }
+        narration: "Iter 3 advance (2/2): curr = nxt = node 4."
+      - step: 15
+        kind: setPointer
+        payload: { name: nxt, nodeId: null }
+        state: { phase: "iter-4" }
+        narration: "Iter 4 snapshot: nxt = curr.next = null. The snapshot pointer goes to null; the next advance will end the loop."
+      - step: 16
+        kind: link
+        payload: { from: 4, to: 3 }
+        state: { phase: "iter-4" }
+        narration: "Iter 4 rewire: node 4's next jumps from null to prev (node 3). All four nodes have been re-pointed."
+      - step: 17
+        kind: setPointer
+        payload: { name: prev, nodeId: 4 }
+        state: { phase: "iter-4" }
+        narration: "Iter 4 advance (1/2): prev = curr = node 4. This is the new head."
+      - step: 18
+        kind: setPointer
+        payload: { name: curr, nodeId: null }
+        state: { phase: "iter-4" }
+        narration: "Iter 4 advance (2/2): curr = nxt = null. The loop guard `curr is not null` will fail next."
+      - step: 19
+        kind: terminate
+        payload: { reason: "empty" }
+        state: { phase: "done", result: [4, 3, 2, 1] }
+        narration: "Loop exits. Return prev = node 4 as the new head. Final reversed chain: 4 -> 3 -> 2 -> 1 -> null."
+
+  panel-c:
+    chapter: "5.2"
+    label: "K-group reversal (peek-then-reverse-then-stitch)"
+    canonical_input: |
+      head = [1, 2, 3, 4, 5]
+      k = 2
+    presets:
+      - id: canonical
+        label: "Canonical (chapter example, k=2)"
+        input: { head: [1, 2, 3, 4, 5], k: 2 }
+      - id: k-equals-3
+        label: "k=3 with partial trailing pair"
+        input: { head: [1, 2, 3, 4, 5], k: 3 }
+      - id: n-equals-k
+        label: "n = k exactly (single full group)"
+        input: { head: [1, 2, 3], k: 3 }
+      - id: partial-trailing
+        label: "n=8, k=3 (two full groups + tail of 2)"
+        input: { head: [1, 2, 3, 4, 5, 6, 7, 8], k: 3 }
+    n_steps: 40
+    # Trace generated by running the verified Python reference
+    # (content/dsa/part-5-linked-lists/02-reverse-in-groups-k/lc-25/sol.py)
+    # on canonical input head=[1,2,3,4,5], k=2. Phases: init, peek-ahead,
+    # sub-reverse, re-stitch, advance, peek-ahead-fail, answer. Each inner-
+    # loop iteration emits separate snapshot/rewire/advance keyframes so
+    # the prev/curr/nxt chips animate the three-pointer rewire instead of
+    # teleporting once per iteration.
+    # Final list: 2 -> 1 -> 4 -> 3 -> 5 (trailing 5 untouched per LC 25 spec).
+    keyframes:
+      - step: 0
+        kind: init
+        state: { group_prev: "dummy", phase: init }
+        narration: "dummy.next = 1; group_prev = dummy. The dummy sentinel pins a stable handle on the head so the first group reverses without a special case."
+      - step: 1
+        kind: peekStep
+        payload: { k_remaining: 2, cursor_at: "dummy" }
+        narration: "Begin peek-ahead from group_prev for k=2 nodes. No pointer is rewired yet."
+      - step: 2
+        kind: peekStep
+        payload: { k_remaining: 1, cursor_at: 1 }
+        narration: "Cursor advances to node 1; k_remaining drops to 1."
+      - step: 3
+        kind: peekStep
+        payload: { k_remaining: 0, cursor_at: 2 }
+        narration: "Cursor reaches node 2; kth = node 2; full group of k=2 confirmed. Now we reverse."
+      - step: 4
+        kind: setPointer
+        payload: { name: prev, nodeId: 3 }
+        state: { phase: "g1-init" }
+        narration: "Init prev = group_next = node 3 (the start of the unprocessed suffix)."
+      - step: 5
+        kind: setPointer
+        payload: { name: curr, nodeId: 1 }
+        state: { phase: "g1-init" }
+        narration: "curr = node 1, the head of the group we're about to reverse."
+      - step: 6
+        kind: setPointer
+        payload: { name: nxt, nodeId: 2 }
+        state: { phase: "g1-iter-1" }
+        narration: "Iter 1 snapshot: nxt = curr.next = node 2."
+      - step: 7
+        kind: link
+        payload: { from: 1, to: 3 }
+        state: { phase: "g1-iter-1" }
+        narration: "Iter 1 rewire: node 1's next jumps from node 2 to prev (node 3)."
+      - step: 8
+        kind: setPointer
+        payload: { name: prev, nodeId: 1 }
+        state: { phase: "g1-iter-1" }
+        narration: "Iter 1 advance (1/2): prev = curr = node 1."
+      - step: 9
+        kind: setPointer
+        payload: { name: curr, nodeId: 2 }
+        state: { phase: "g1-iter-1" }
+        narration: "Iter 1 advance (2/2): curr = nxt = node 2."
+      - step: 10
+        kind: setPointer
+        payload: { name: nxt, nodeId: 3 }
+        state: { phase: "g1-iter-2" }
+        narration: "Iter 2 snapshot: nxt = curr.next = node 3 (the group_next sentinel)."
+      - step: 11
+        kind: link
+        payload: { from: 2, to: 1 }
+        state: { phase: "g1-iter-2" }
+        narration: "Iter 2 rewire: node 2's next jumps from node 3 to prev (node 1)."
+      - step: 12
+        kind: setPointer
+        payload: { name: prev, nodeId: 2 }
+        state: { phase: "g1-iter-2" }
+        narration: "Iter 2 advance (1/2): prev = curr = node 2."
+      - step: 13
+        kind: setPointer
+        payload: { name: curr, nodeId: 3 }
+        state: { phase: "g1-iter-2" }
+        narration: "Iter 2 advance (2/2): curr = nxt = node 3 = group_next. Inner loop exits."
+      - step: 14
+        kind: spliceSeam
+        payload: { from: "dummy", to: 2 }
+        state: { phase: "g1-splice" }
+        narration: "Re-stitch the seam: group_prev.next = kth = node 2. The new group head is node 2; the original group head (node 1) is now the group tail."
+      - step: 15
+        kind: setPointer
+        payload: { name: group_prev, nodeId: 1 }
+        state: { phase: "g1-splice" }
+        narration: "Advance group_prev to the new group tail (node 1). Cursor is positioned at the seam for the next group."
+      - step: 16
+        kind: groupComplete
+        payload: { group_index: 1 }
+        state: { phase: "g1-done" }
+        narration: "Group 1 done. List so far: dummy -> 2 -> 1 -> 3 -> 4 -> 5."
+      - step: 17
+        kind: peekStep
+        payload: { k_remaining: 2, cursor_at: 1 }
+        state: { phase: "g2-peek" }
+        narration: "Begin second peek-ahead from group_prev = node 1."
+      - step: 18
+        kind: peekStep
+        payload: { k_remaining: 1, cursor_at: 3 }
+        state: { phase: "g2-peek" }
+        narration: "Cursor advances to node 3."
+      - step: 19
+        kind: peekStep
+        payload: { k_remaining: 0, cursor_at: 4 }
+        state: { phase: "g2-peek" }
+        narration: "Cursor reaches node 4; kth = node 4; second full group confirmed."
+      - step: 20
+        kind: setPointer
+        payload: { name: prev, nodeId: 5 }
+        state: { phase: "g2-init" }
+        narration: "Init prev = group_next = node 5."
+      - step: 21
+        kind: setPointer
+        payload: { name: curr, nodeId: 3 }
+        state: { phase: "g2-init" }
+        narration: "curr = node 3, the head of group 2."
+      - step: 22
+        kind: setPointer
+        payload: { name: nxt, nodeId: 4 }
+        state: { phase: "g2-iter-1" }
+        narration: "Iter 1 snapshot: nxt = node 4."
+      - step: 23
+        kind: link
+        payload: { from: 3, to: 5 }
+        state: { phase: "g2-iter-1" }
+        narration: "Iter 1 rewire: node 3's next jumps from node 4 to prev (node 5)."
+      - step: 24
+        kind: setPointer
+        payload: { name: prev, nodeId: 3 }
+        state: { phase: "g2-iter-1" }
+        narration: "Iter 1 advance (1/2): prev = curr = node 3."
+      - step: 25
+        kind: setPointer
+        payload: { name: curr, nodeId: 4 }
+        state: { phase: "g2-iter-1" }
+        narration: "Iter 1 advance (2/2): curr = nxt = node 4."
+      - step: 26
+        kind: setPointer
+        payload: { name: nxt, nodeId: 5 }
+        state: { phase: "g2-iter-2" }
+        narration: "Iter 2 snapshot: nxt = node 5 = group_next."
+      - step: 27
+        kind: link
+        payload: { from: 4, to: 3 }
+        state: { phase: "g2-iter-2" }
+        narration: "Iter 2 rewire: node 4's next jumps from node 5 to prev (node 3)."
+      - step: 28
+        kind: setPointer
+        payload: { name: prev, nodeId: 4 }
+        state: { phase: "g2-iter-2" }
+        narration: "Iter 2 advance (1/2): prev = curr = node 4."
+      - step: 29
+        kind: setPointer
+        payload: { name: curr, nodeId: 5 }
+        state: { phase: "g2-iter-2" }
+        narration: "Iter 2 advance (2/2): curr = nxt = node 5 = group_next. Inner loop exits."
+      - step: 30
+        kind: spliceSeam
+        payload: { from: 1, to: 4 }
+        state: { phase: "g2-splice" }
+        narration: "Splice the seam: group_prev.next = kth = node 4. Node 1 now points to node 4."
+      - step: 31
+        kind: setPointer
+        payload: { name: group_prev, nodeId: 3 }
+        state: { phase: "g2-splice" }
+        narration: "Advance group_prev to the new group tail (node 3)."
+      - step: 32
+        kind: groupComplete
+        payload: { group_index: 2 }
+        state: { phase: "g2-done" }
+        narration: "Group 2 done. List so far: dummy -> 2 -> 1 -> 4 -> 3 -> 5."
+      - step: 33
+        kind: peekStep
+        payload: { k_remaining: 2, cursor_at: 3 }
+        state: { phase: "g3-peek" }
+        narration: "Begin third peek-ahead from group_prev = node 3."
+      - step: 34
+        kind: peekStep
+        payload: { k_remaining: 1, cursor_at: 5 }
+        state: { phase: "g3-peek" }
+        narration: "Cursor advances to node 5; one node found, one more needed."
+      - step: 35
+        kind: peekStep
+        payload: { k_remaining: 1, cursor_at: null }
+        state: { phase: "g3-peek" }
+        narration: "Cursor walks off the end. Only 1 node remains, less than k=2. Peek-ahead returns null."
+      - step: 36
+        kind: setPointer
+        payload: { name: prev, nodeId: null }
+        state: { phase: "done" }
+        narration: "All loop pointers retire (prev = curr = nxt = null)."
+      - step: 37
+        kind: setPointer
+        payload: { name: curr, nodeId: null }
+        state: { phase: "done" }
+        narration: "curr = null."
+      - step: 38
+        kind: setPointer
+        payload: { name: nxt, nodeId: null }
+        state: { phase: "done" }
+        narration: "nxt = null."
+      - step: 39
+        kind: terminate
+        payload: { reason: peek-under-run }
+        state: { phase: "done", result: [2, 1, 4, 3, 5] }
+        narration: "Return dummy.next. Final list: 2 -> 1 -> 4 -> 3 -> 5. Two full groups reversed; trailing node 5 preserved per LC 25's left-out-nodes rule."
+
+notes: |
+  Three-way shared widget for the Part 5 ladder. Panel-c (this file)
+  ships first with chapter 5.2; panels a and b are appended when
+  chapters 5.1 (single-list reversal) and 5.0 (linked list fundamentals
+  + dummy node) ship. Cross-panel reuse of pointer-naming
+  (prev / curr / next / nxt) and the dummy-node sentinel is intentional —
+  the chapter sequence builds the K-group choreography from the same
+  primitives the reader has already seen.

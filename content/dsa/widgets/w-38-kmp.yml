@@ -1,0 +1,438 @@
+# KMP failure function and matching pass
+# Single-panel chapter widget for 12.2. Animates two phases:
+#   Phase A — failure-function (LPS) construction on P = "ABABCABAB" (11 steps)
+#   Phase B — matching pass on T = "ABABDABACDABABCABAB" (25 steps to first match)
+# 36 total steps, well under the 1000-step cap.
+#
+# Trace transcribed verbatim step buffer; deterministic
+# replay against the §2.2 Python reference produces byte-identical output
+#.
+#
+# Widget id w-38-kmp picked because w-32 (research draft id) is claimed by
+# Knapsack and w-37/w-39/w-40 are claimed by Bellman-Ford / Huffman / Z-array.
+
+id: w-38-kmp
+title: "KMP failure-function build and matching pass"
+type: single-panel
+level: 2
+modes: [preset]
+
+caps:
+  pattern_length: { min: 2, max: 32 }
+  text_length: { min: 2, max: 64 }
+  trace_length: { max: 1000 }
+
+commands:
+  - name: lpsInit
+    payload: { pattern: 'string', lps: 'array<integer>' }
+    description: "Initialize lps array to zeros; start i=1, length=0."
+  - name: lpsMatch
+    payload: { i: 'integer', length: 'integer', lps_value: 'integer' }
+    description: "P[i] == P[length]; set lps[i] = length+1; advance both."
+  - name: lpsFallback
+    payload: { i: 'integer', new_length: 'integer' }
+    description: "Mismatch with length>0; length = lps[length-1]; do NOT advance i."
+  - name: lpsZero
+    payload: { i: 'integer' }
+    description: "Mismatch with length=0; lps[i] = 0; advance i."
+  - name: lpsDone
+    payload: { lps: 'array<integer>' }
+    description: "Failure function complete."
+  - name: matchInit
+    payload: { text: 'string', pattern: 'string' }
+    description: "Begin matching pass; i=0 (text), j=0 (pattern)."
+  - name: matchAdvance
+    payload: { i: 'integer', j: 'integer' }
+    description: "T[i] == P[j]; advance both pointers."
+  - name: matchFallback
+    payload: { i: 'integer', new_j: 'integer' }
+    description: "Mismatch with j>0; j = lps[j-1]; do NOT advance i."
+  - name: matchSkip
+    payload: { i: 'integer' }
+    description: "Mismatch with j=0; advance i only."
+  - name: matchFound
+    payload: { match_start: 'integer' }
+    description: "j reached m; full match at i - j; return."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-38-kmp-fallback.svg
+  keyframes_used: [0, 4, 10, 11, 22, 35]
+
+panels:
+  default:
+    chapter: "12.2"
+    label: "KMP on ABABCABAB / ABABDABACDABABCABAB — failure function then matching"
+    canonical_input: |
+      pattern = "ABABCABAB"
+      text    = "ABABDABACDABABCABAB"
+      expected_lps = [0, 0, 1, 2, 0, 1, 2, 3, 4]
+      expected_first_match_index = 10
+    presets:
+      - id: canonical
+        label: "ABABCABAB / ABABDABACDABABCABAB — exercises both fallback paths"
+        input:
+          pattern: "ABABCABAB"
+          text: "ABABDABACDABABCABAB"
+    n_steps: 36
+    keyframes:
+      # Phase A: failure-function construction on P = "ABABCABAB"
+      - step_id: 0
+        action: lpsInit
+        highlights: ["pattern-row", "lps-row"]
+        state_snapshot:
+          phase: "lps-init"
+          pattern: "ABABCABAB"
+          i: 1
+          length: 0
+          lps: [0, 0, 0, 0, 0, 0, 0, 0, 0]
+        narration: "Phase A starts. lps[0] = 0 by definition. i=1, length=0."
+      - step_id: 1
+        action: lpsZero
+        highlights: ["pattern-cell-1", "pattern-cell-0"]
+        state_snapshot:
+          phase: "lps-zero"
+          i: 1
+          length: 0
+          compare: [1, 0]
+          result: "zero"
+          lps: [0, 0, 0, 0, 0, 0, 0, 0, 0]
+        narration: "P[1]='B' != P[0]='A' and length=0; lps[1]=0; advance i."
+      - step_id: 2
+        action: lpsMatch
+        highlights: ["pattern-cell-2", "pattern-cell-0", "lps-cell-2"]
+        state_snapshot:
+          phase: "lps-match"
+          i: 2
+          length: 1
+          compare: [2, 0]
+          result: "match"
+          lps: [0, 0, 1, 0, 0, 0, 0, 0, 0]
+        narration: "P[2]='A' == P[0]='A'; lps[2]=1; advance both."
+      - step_id: 3
+        action: lpsMatch
+        highlights: ["pattern-cell-3", "pattern-cell-1", "lps-cell-3"]
+        state_snapshot:
+          phase: "lps-match"
+          i: 3
+          length: 2
+          compare: [3, 1]
+          result: "match"
+          lps: [0, 0, 1, 2, 0, 0, 0, 0, 0]
+        narration: "P[3]='B' == P[1]='B'; lps[3]=2; advance both."
+      - step_id: 4
+        action: lpsFallback
+        highlights: ["pattern-cell-4", "pattern-cell-2", "lps-cell-1"]
+        state_snapshot:
+          phase: "lps-fallback"
+          i: 4
+          length: 0
+          compare: [4, 2]
+          result: "fallback"
+          lps: [0, 0, 1, 2, 0, 0, 0, 0, 0]
+        narration: "P[4]='C' != P[2]='A'; length = lps[1] = 0; do NOT advance i."
+      - step_id: 5
+        action: lpsZero
+        highlights: ["pattern-cell-4", "pattern-cell-0"]
+        state_snapshot:
+          phase: "lps-zero"
+          i: 4
+          length: 0
+          compare: [4, 0]
+          result: "zero"
+          lps: [0, 0, 1, 2, 0, 0, 0, 0, 0]
+        narration: "P[4]='C' != P[0]='A' and length=0; lps[4]=0; advance i."
+      - step_id: 6
+        action: lpsMatch
+        highlights: ["pattern-cell-5", "pattern-cell-0", "lps-cell-5"]
+        state_snapshot:
+          phase: "lps-match"
+          i: 5
+          length: 1
+          compare: [5, 0]
+          result: "match"
+          lps: [0, 0, 1, 2, 0, 1, 0, 0, 0]
+        narration: "P[5]='A' == P[0]='A'; lps[5]=1; advance both."
+      - step_id: 7
+        action: lpsMatch
+        highlights: ["pattern-cell-6", "pattern-cell-1", "lps-cell-6"]
+        state_snapshot:
+          phase: "lps-match"
+          i: 6
+          length: 2
+          compare: [6, 1]
+          result: "match"
+          lps: [0, 0, 1, 2, 0, 1, 2, 0, 0]
+        narration: "P[6]='B' == P[1]='B'; lps[6]=2; advance both."
+      - step_id: 8
+        action: lpsMatch
+        highlights: ["pattern-cell-7", "pattern-cell-2", "lps-cell-7"]
+        state_snapshot:
+          phase: "lps-match"
+          i: 7
+          length: 3
+          compare: [7, 2]
+          result: "match"
+          lps: [0, 0, 1, 2, 0, 1, 2, 3, 0]
+        narration: "P[7]='A' == P[2]='A'; lps[7]=3; advance both."
+      - step_id: 9
+        action: lpsMatch
+        highlights: ["pattern-cell-8", "pattern-cell-3", "lps-cell-8"]
+        state_snapshot:
+          phase: "lps-match"
+          i: 8
+          length: 4
+          compare: [8, 3]
+          result: "match"
+          lps: [0, 0, 1, 2, 0, 1, 2, 3, 4]
+        narration: "P[8]='B' == P[3]='B'; lps[8]=4; advance both."
+      - step_id: 10
+        action: lpsDone
+        highlights: ["lps-row"]
+        state_snapshot:
+          phase: "lps-done"
+          lps: [0, 0, 1, 2, 0, 1, 2, 3, 4]
+        narration: "Failure function complete: [0, 0, 1, 2, 0, 1, 2, 3, 4]."
+      # Phase B: matching pass T = "ABABDABACDABABCABAB" against P
+      - step_id: 11
+        action: matchInit
+        highlights: ["text-row", "pattern-row"]
+        state_snapshot:
+          phase: "match-init"
+          text: "ABABDABACDABABCABAB"
+          pattern: "ABABCABAB"
+          i: 0
+          j: 0
+        narration: "Phase B starts. i=0 (text), j=0 (pattern)."
+      - step_id: 12
+        action: matchAdvance
+        highlights: ["text-cell-0", "pattern-cell-0"]
+        state_snapshot:
+          phase: "match-advance"
+          i: 0
+          j: 0
+          compare: [0, 0]
+          result: "match"
+        narration: "T[0]='A' == P[0]='A'; advance both."
+      - step_id: 13
+        action: matchAdvance
+        highlights: ["text-cell-1", "pattern-cell-1"]
+        state_snapshot:
+          phase: "match-advance"
+          i: 1
+          j: 1
+          compare: [1, 1]
+          result: "match"
+        narration: "T[1]='B' == P[1]='B'; advance both."
+      - step_id: 14
+        action: matchAdvance
+        highlights: ["text-cell-2", "pattern-cell-2"]
+        state_snapshot:
+          phase: "match-advance"
+          i: 2
+          j: 2
+          compare: [2, 2]
+          result: "match"
+        narration: "T[2]='A' == P[2]='A'; advance both."
+      - step_id: 15
+        action: matchAdvance
+        highlights: ["text-cell-3", "pattern-cell-3"]
+        state_snapshot:
+          phase: "match-advance"
+          i: 3
+          j: 3
+          compare: [3, 3]
+          result: "match"
+        narration: "T[3]='B' == P[3]='B'; advance both."
+      - step_id: 16
+        action: matchFallback
+        highlights: ["text-cell-4", "pattern-cell-4", "lps-cell-3"]
+        state_snapshot:
+          phase: "match-fallback"
+          i: 4
+          j: 2
+          compare: [4, 4]
+          result: "fallback"
+        narration: "T[4]='D' != P[4]='C'; j = lps[3] = 2; do NOT advance i. KMP shift = 4 - 2 = 2."
+      - step_id: 17
+        action: matchFallback
+        highlights: ["text-cell-4", "pattern-cell-2", "lps-cell-1"]
+        state_snapshot:
+          phase: "match-fallback"
+          i: 4
+          j: 0
+          compare: [4, 2]
+          result: "fallback"
+        narration: "T[4]='D' != P[2]='A'; j = lps[1] = 0; do NOT advance i."
+      - step_id: 18
+        action: matchSkip
+        highlights: ["text-cell-4"]
+        state_snapshot:
+          phase: "match-skip"
+          i: 4
+          j: 0
+          compare: [4, 0]
+          result: "skip"
+        narration: "T[4]='D' != P[0]='A' and j=0; advance i."
+      - step_id: 19
+        action: matchAdvance
+        highlights: ["text-cell-5", "pattern-cell-0"]
+        state_snapshot:
+          phase: "match-advance"
+          i: 5
+          j: 0
+          compare: [5, 0]
+          result: "match"
+        narration: "T[5]='A' == P[0]='A'; advance both."
+      - step_id: 20
+        action: matchAdvance
+        highlights: ["text-cell-6", "pattern-cell-1"]
+        state_snapshot:
+          phase: "match-advance"
+          i: 6
+          j: 1
+          compare: [6, 1]
+          result: "match"
+        narration: "T[6]='B' == P[1]='B'; advance both."
+      - step_id: 21
+        action: matchAdvance
+        highlights: ["text-cell-7", "pattern-cell-2"]
+        state_snapshot:
+          phase: "match-advance"
+          i: 7
+          j: 2
+          compare: [7, 2]
+          result: "match"
+        narration: "T[7]='A' == P[2]='A'; advance both."
+      - step_id: 22
+        action: matchFallback
+        highlights: ["text-cell-8", "pattern-cell-3", "lps-cell-2"]
+        state_snapshot:
+          phase: "match-fallback"
+          i: 8
+          j: 1
+          compare: [8, 3]
+          result: "fallback"
+        narration: "T[8]='C' != P[3]='B'; j = lps[2] = 1; do NOT advance i."
+      - step_id: 23
+        action: matchFallback
+        highlights: ["text-cell-8", "pattern-cell-1", "lps-cell-0"]
+        state_snapshot:
+          phase: "match-fallback"
+          i: 8
+          j: 0
+          compare: [8, 1]
+          result: "fallback"
+        narration: "T[8]='C' != P[1]='B'; j = lps[0] = 0; do NOT advance i."
+      - step_id: 24
+        action: matchSkip
+        highlights: ["text-cell-8"]
+        state_snapshot:
+          phase: "match-skip"
+          i: 8
+          j: 0
+          compare: [8, 0]
+          result: "skip"
+        narration: "T[8]='C' != P[0]='A' and j=0; advance i."
+      - step_id: 25
+        action: matchSkip
+        highlights: ["text-cell-9"]
+        state_snapshot:
+          phase: "match-skip"
+          i: 9
+          j: 0
+          compare: [9, 0]
+          result: "skip"
+        narration: "T[9]='D' != P[0]='A' and j=0; advance i."
+      - step_id: 26
+        action: matchAdvance
+        highlights: ["text-cell-10", "pattern-cell-0"]
+        state_snapshot:
+          phase: "match-advance"
+          i: 10
+          j: 0
+          compare: [10, 0]
+          result: "match"
+        narration: "T[10]='A' == P[0]='A'; advance both."
+      - step_id: 27
+        action: matchAdvance
+        highlights: ["text-cell-11", "pattern-cell-1"]
+        state_snapshot:
+          phase: "match-advance"
+          i: 11
+          j: 1
+          compare: [11, 1]
+          result: "match"
+      - step_id: 28
+        action: matchAdvance
+        highlights: ["text-cell-12", "pattern-cell-2"]
+        state_snapshot:
+          phase: "match-advance"
+          i: 12
+          j: 2
+          compare: [12, 2]
+          result: "match"
+      - step_id: 29
+        action: matchAdvance
+        highlights: ["text-cell-13", "pattern-cell-3"]
+        state_snapshot:
+          phase: "match-advance"
+          i: 13
+          j: 3
+          compare: [13, 3]
+          result: "match"
+      - step_id: 30
+        action: matchAdvance
+        highlights: ["text-cell-14", "pattern-cell-4"]
+        state_snapshot:
+          phase: "match-advance"
+          i: 14
+          j: 4
+          compare: [14, 4]
+          result: "match"
+        narration: "T[14]='C' == P[4]='C'; advance both. The C that earlier was a D — we never re-scanned the prefix."
+      - step_id: 31
+        action: matchAdvance
+        highlights: ["text-cell-15", "pattern-cell-5"]
+        state_snapshot:
+          phase: "match-advance"
+          i: 15
+          j: 5
+          compare: [15, 5]
+          result: "match"
+      - step_id: 32
+        action: matchAdvance
+        highlights: ["text-cell-16", "pattern-cell-6"]
+        state_snapshot:
+          phase: "match-advance"
+          i: 16
+          j: 6
+          compare: [16, 6]
+          result: "match"
+      - step_id: 33
+        action: matchAdvance
+        highlights: ["text-cell-17", "pattern-cell-7"]
+        state_snapshot:
+          phase: "match-advance"
+          i: 17
+          j: 7
+          compare: [17, 7]
+          result: "match"
+      - step_id: 34
+        action: matchAdvance
+        highlights: ["text-cell-18", "pattern-cell-8"]
+        state_snapshot:
+          phase: "match-advance"
+          i: 18
+          j: 8
+          compare: [18, 8]
+          result: "match"
+      - step_id: 35
+        action: matchFound
+        highlights: ["text-row", "pattern-row"]
+        state_snapshot:
+          phase: "match-found"
+          i: 19
+          j: 9
+          match_start: 10
+        narration: "Full match at T[10..18]; return 10. The next call would shift via j = lps[8] = 4 to continue without rescanning."

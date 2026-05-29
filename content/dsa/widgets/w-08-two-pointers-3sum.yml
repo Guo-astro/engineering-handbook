@@ -1,0 +1,109 @@
+# Two Pointers — sum-equals-target on a sorted array
+# Reference widget. Authoritative spec at runtime.
+
+id: w-08-two-pointers-3sum
+title: "Two pointers (sum-equals-target)"
+type: single-panel
+level: 1
+modes: [preset, randomize, edit]
+
+caps:
+  array_length: { min: 2, max: 16 }
+  values: { min: -99, max: 99 }
+  target: { min: -198, max: 198 }
+
+commands:
+  - name: setPointer
+    payload: { which: 'l | r', index: 'integer' }
+    description: "Move the named pointer to the given index. Animates a 1-cell hop."
+  - name: compareSum
+    payload: { sum: 'integer', vs_target: 'integer', verdict: 'too_low | too_high | hit' }
+    description: "Show the running sum panel below the array; flash the comparison."
+  - name: foundPair
+    payload: { l: 'integer', r: 'integer' }
+    description: "Both pointers latch; answer cells turn solid green."
+  - name: noSolution
+    payload: {}
+    description: "Pointers cross; widget enters terminal state with a 'no pair' label."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-08-two-pointers-3sum-fallback.svg
+  keyframes_used: [0, "n_steps/4", "n_steps/2", "n_steps-1"]
+
+panels:
+  default:
+    chapter: "3.0"
+    label: "Two pointers (opposite ends)"
+    canonical_input: |
+      nums = [-2, -1, 1, 4, 7, 12, 15]
+      target = 6
+      autoSort = true
+    presets:
+      - id: canonical
+        label: "Canonical (chapter example)"
+        input: { nums: [-2, -1, 1, 4, 7, 12, 15], target: 6, autoSort: true }
+      - id: no-solution
+        label: "No solution exists"
+        input: { nums: [1, 2, 3, 4, 5], target: 100, autoSort: true }
+      - id: duplicates
+        label: "Duplicates in the array"
+        input: { nums: [3, 3, 3, 3, 6], target: 6, autoSort: true }
+      - id: unsorted-trap
+        label: "Unsorted (showcases the bug)"
+        input: { nums: [12, 1, 7, -2, 4, 15, -1], target: 6, autoSort: false }
+    n_steps: 9
+    # Trace generated for canonical input nums = [-2, -1, 1, 4, 7, 12, 15], target = 6.
+    # Walks the full opposite-ends sweep until the pair (-1, 7) at indices [1, 4]
+    # sums to 6. Validates the "advance the smaller-sum side" rule on three branch
+    # decisions (two too-high, one too-low) before the hit.
+    keyframes:
+      - step: 0
+        kind: init
+        state: { l: 0, r: 6, sum: null, found: false }
+        narration: "Sorted array displayed. Place l at index 0 (value -2) and r at index 6 (value 15). Target is 6."
+      - step: 1
+        kind: compareSum
+        payload: { sum: 13, vs_target: 6, verdict: too_high }
+        state: { l: 0, r: 6, sum: 13, found: false }
+        narration: "nums[l] + nums[r] = -2 + 15 = 13. Too high. Shrink the right side: advance r."
+      - step: 2
+        kind: setPointer
+        payload: { which: r, index: 5 }
+        state: { l: 0, r: 5, sum: null, found: false }
+        narration: "r moves to index 5 (value 12)."
+      - step: 3
+        kind: compareSum
+        payload: { sum: 10, vs_target: 6, verdict: too_high }
+        state: { l: 0, r: 5, sum: 10, found: false }
+        narration: "nums[l] + nums[r] = -2 + 12 = 10. Still too high. Advance r again."
+      - step: 4
+        kind: setPointer
+        payload: { which: r, index: 4 }
+        state: { l: 0, r: 4, sum: null, found: false }
+        narration: "r moves to index 4 (value 7)."
+      - step: 5
+        kind: compareSum
+        payload: { sum: 5, vs_target: 6, verdict: too_low }
+        state: { l: 0, r: 4, sum: 5, found: false }
+        narration: "nums[l] + nums[r] = -2 + 7 = 5. Now too low. Grow the left side: advance l."
+      - step: 6
+        kind: setPointer
+        payload: { which: l, index: 1 }
+        state: { l: 1, r: 4, sum: null, found: false }
+        narration: "l moves to index 1 (value -1)."
+      - step: 7
+        kind: compareSum
+        payload: { sum: 6, vs_target: 6, verdict: hit }
+        state: { l: 1, r: 4, sum: 6, found: true }
+        narration: "nums[l] + nums[r] = -1 + 7 = 6. Hit."
+      - step: 8
+        kind: foundPair
+        payload: { l: 1, r: 4 }
+        state: { l: 1, r: 4, sum: 6, found: true, result: [1, 4] }
+        narration: "Pair found at indices [1, 4]. Three branch decisions, one linear sweep."
+
+notes: |
+  Reference widget for the AlgoStep contract — the shape every Phase 1 widget
+  mirrors.
+  Distinct from editorial widget e-LC015-3sum, which animates LC 15 specifically.

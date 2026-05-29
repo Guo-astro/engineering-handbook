@@ -1,0 +1,209 @@
+# LIS via patience sort
+# Single-panel chapter widget for 9.9. Animates the tails-array build on
+# the canonical LC 300 input nums = [10, 9, 2, 5, 3, 7, 101, 18].
+# Trace transcribed step buffer; replay-verified against
+# the §2.2 Python reference.
+
+id: w-33-lis-patience
+title: "LIS via patience sort"
+type: single-panel
+level: 1
+modes: [preset, randomize, edit]
+
+caps:
+  array_length: { min: 4, max: 16 }
+  values: { min: -99, max: 99 }
+
+commands:
+  - name: consider
+    payload: { i: 'integer', x: 'integer' }
+    description: "Highlight the next input cell about to be processed."
+  - name: bisect
+    payload: { x: 'integer', pos: 'integer', decision: 'string' }
+    description: "Highlight the bisect_left landing index in tails; flag extend or replace."
+  - name: extend
+    payload: { x: 'integer', new_length: 'integer' }
+    description: "Append x to tails."
+  - name: replace
+    payload: { pos: 'integer', old: 'integer', new: 'integer' }
+    description: "Overwrite tails[pos]."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-33-lis-patience-fallback.svg
+  keyframes_used: [0, "after_step_4", "after_step_7", "answer"]
+
+panels:
+  default:
+    chapter: "9.9"
+    label: "LIS via patience sort"
+    canonical_input: |
+      nums = [10, 9, 2, 5, 3, 7, 101, 18]
+      strict = true
+    presets:
+      - id: canonical
+        label: "Canonical (LC 300 example 1)"
+        input: { nums: [10, 9, 2, 5, 3, 7, 101, 18], strict: true }
+      - id: equal_values
+        label: "All equal (strict, LIS = 1)"
+        input: { nums: [7, 7, 7, 7, 7, 7, 7], strict: true }
+      - id: non_strict
+        label: "Non-strict (bisect_right, LIS = 4)"
+        input: { nums: [1, 2, 3, 2, 4], strict: false }
+    n_steps: 26
+    keyframes:
+      - step_id: 0
+        action: init
+        highlights: ["tails-row"]
+        state_snapshot:
+          i: null
+          x: null
+          tails: []
+          pos: null
+          decision: null
+        narration: "Initialize. tails = []. Process 8 numbers left to right."
+      - step_id: 1
+        action: consider
+        highlights: ["array-cell-0"]
+        state_snapshot: { i: 0, x: 10, tails: [], pos: null, decision: null }
+        narration: "Consider nums[0] = 10."
+      - step_id: 2
+        action: bisect
+        highlights: ["tails-cell-0"]
+        state_snapshot: { i: 0, x: 10, tails: [], pos: 0, decision: extend }
+        narration: "bisect_left(tails, 10) = 0. Tails is empty, so extend."
+      - step_id: 3
+        action: extend
+        highlights: ["tails-cell-0"]
+        state_snapshot: { i: 0, x: 10, tails: [10], pos: 0, decision: extend }
+        narration: "After step 1: tails = [10], length = 1."
+      - step_id: 4
+        action: consider
+        highlights: ["array-cell-1"]
+        state_snapshot: { i: 1, x: 9, tails: [10], pos: null, decision: null }
+        narration: "Consider nums[1] = 9."
+      - step_id: 5
+        action: bisect
+        highlights: ["tails-cell-0"]
+        state_snapshot: { i: 1, x: 9, tails: [10], pos: 0, decision: replace }
+        narration: "bisect_left(tails, 9) = 0. Replace tails[0] (= 10) with 9."
+      - step_id: 6
+        action: replace
+        highlights: ["tails-cell-0"]
+        state_snapshot: { i: 1, x: 9, tails: [9], pos: 0, decision: replace }
+        narration: "After step 2: tails = [9], length = 1."
+      - step_id: 7
+        action: consider
+        highlights: ["array-cell-2"]
+        state_snapshot: { i: 2, x: 2, tails: [9], pos: null, decision: null }
+        narration: "Consider nums[2] = 2."
+      - step_id: 8
+        action: bisect
+        highlights: ["tails-cell-0"]
+        state_snapshot: { i: 2, x: 2, tails: [9], pos: 0, decision: replace }
+        narration: "bisect_left(tails, 2) = 0. Replace tails[0] (= 9) with 2."
+      - step_id: 9
+        action: replace
+        highlights: ["tails-cell-0"]
+        state_snapshot: { i: 2, x: 2, tails: [2], pos: 0, decision: replace }
+        narration: "After step 3: tails = [2], length = 1."
+      - step_id: 10
+        action: consider
+        highlights: ["array-cell-3"]
+        state_snapshot: { i: 3, x: 5, tails: [2], pos: null, decision: null }
+        narration: "Consider nums[3] = 5."
+      - step_id: 11
+        action: bisect
+        highlights: ["tails-cell-1"]
+        state_snapshot: { i: 3, x: 5, tails: [2], pos: 1, decision: extend }
+        narration: "bisect_left(tails, 5) = 1. 5 exceeds every tail; extend."
+      - step_id: 12
+        action: extend
+        highlights: ["tails-cell-1"]
+        state_snapshot: { i: 3, x: 5, tails: [2, 5], pos: 1, decision: extend }
+        narration: "After step 4: tails = [2, 5], length = 2."
+      - step_id: 13
+        action: consider
+        highlights: ["array-cell-4"]
+        state_snapshot: { i: 4, x: 3, tails: [2, 5], pos: null, decision: null }
+        narration: "Consider nums[4] = 3."
+      - step_id: 14
+        action: bisect
+        highlights: ["tails-cell-1"]
+        state_snapshot: { i: 4, x: 3, tails: [2, 5], pos: 1, decision: replace }
+        narration: "bisect_left(tails, 3) = 1. Replace tails[1] (= 5) with 3."
+      - step_id: 15
+        action: replace
+        highlights: ["tails-cell-1"]
+        state_snapshot: { i: 4, x: 3, tails: [2, 3], pos: 1, decision: replace }
+        narration: |
+          After step 5: tails = [2, 3], length = 2. The replacement freezes
+          a smaller possible tail at length 2; future extensions get an
+          easier bar to clear.
+      - step_id: 16
+        action: consider
+        highlights: ["array-cell-5"]
+        state_snapshot: { i: 5, x: 7, tails: [2, 3], pos: null, decision: null }
+        narration: "Consider nums[5] = 7."
+      - step_id: 17
+        action: bisect
+        highlights: ["tails-cell-2"]
+        state_snapshot: { i: 5, x: 7, tails: [2, 3], pos: 2, decision: extend }
+        narration: "bisect_left(tails, 7) = 2. Extend."
+      - step_id: 18
+        action: extend
+        highlights: ["tails-cell-2"]
+        state_snapshot: { i: 5, x: 7, tails: [2, 3, 7], pos: 2, decision: extend }
+        narration: "After step 6: tails = [2, 3, 7], length = 3."
+      - step_id: 19
+        action: consider
+        highlights: ["array-cell-6"]
+        state_snapshot: { i: 6, x: 101, tails: [2, 3, 7], pos: null, decision: null }
+        narration: "Consider nums[6] = 101."
+      - step_id: 20
+        action: bisect
+        highlights: ["tails-cell-3"]
+        state_snapshot: { i: 6, x: 101, tails: [2, 3, 7], pos: 3, decision: extend }
+        narration: "bisect_left(tails, 101) = 3. Extend."
+      - step_id: 21
+        action: extend
+        highlights: ["tails-cell-3"]
+        state_snapshot: { i: 6, x: 101, tails: [2, 3, 7, 101], pos: 3, decision: extend }
+        narration: "After step 7: tails = [2, 3, 7, 101], length = 4."
+      - step_id: 22
+        action: consider
+        highlights: ["array-cell-7"]
+        state_snapshot: { i: 7, x: 18, tails: [2, 3, 7, 101], pos: null, decision: null }
+        narration: "Consider nums[7] = 18."
+      - step_id: 23
+        action: bisect
+        highlights: ["tails-cell-3"]
+        state_snapshot: { i: 7, x: 18, tails: [2, 3, 7, 101], pos: 3, decision: replace }
+        narration: "bisect_left(tails, 18) = 3. Replace tails[3] (= 101) with 18."
+      - step_id: 24
+        action: replace
+        highlights: ["tails-cell-3"]
+        state_snapshot: { i: 7, x: 18, tails: [2, 3, 7, 18], pos: 3, decision: replace }
+        narration: |
+          After step 8: tails = [2, 3, 7, 18]. The length stays 4 — but the
+          tail at length 4 is now 18, not 101. tails[i] is the smallest
+          possible tail of any length-(i+1) increasing subsequence so far.
+      - step_id: 25
+        action: answer
+        highlights: ["tails-row"]
+        state_snapshot: { i: null, x: null, tails: [2, 3, 7, 18], pos: null, decision: answer }
+        narration: |
+          Loop done. LIS length = len(tails) = 4. The visible array
+          [2, 3, 7, 18] is NOT necessarily the LIS subsequence (in this
+          input one true LIS is [2, 3, 7, 101]); reconstructing the actual
+          subsequence needs back-pointers per Bespamyatnikh and Segal 2000.
+
+notes: |
+  Two stacked rows: input nums on top with the current i highlighted, tails
+  below with the bisect_left landing position highlighted. The `strict`
+  toggle swaps bisect_left for bisect_right and is what makes the
+  non-strict preset return LIS = 4 on [1, 2, 3, 2, 4]. Step 24 is the
+  pedagogical climax: same length, smaller tail, the invariant the chapter
+  hammers on. Reduced-motion fallback uses keyframes [0, 12, 21, 25]:
+  empty / after step 4 (tails = [2, 5]) / after step 7 (tails = [2, 3, 7, 101]) /
+  final answer.

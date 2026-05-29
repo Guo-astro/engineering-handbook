@@ -1,0 +1,130 @@
+# DFS exploration -- iterative DFS-from-boundary on a 5x5 grid
+# Single-panel chapter widget for 8.2 DFS. Animates LC 130 Surrounded
+# Regions by walking the explicit-stack iterative form: seed the four
+# borders, pop-mark-push-neighbors until the stack drains, then a
+# two-step final sweep flips the surrounded cells.
+#
+# Trace transcribed verbatim step buffer (20 frames),
+# verified deterministic against the §2.6 iterative Python reference on
+# 2026-05-20. Replay yields byte-identical output.
+#
+# Status: complete.
+
+id: w-26-graph-dfs
+title: "DFS exploration -- iterative DFS-from-boundary on a 5x5 grid"
+type: single-panel
+level: 1
+
+modes: [preset, edit]   # edit lets readers retype X/O cells under the m,n caps
+
+caps:
+  m: { min: 2, max: 6 }
+  n: { min: 2, max: 6 }
+  steps: { hard_max: 1000 }   # 5x5 canonical = 20; 6x6 ~50.
+
+commands:
+  - name: seedBorders
+    payload: { stack: "[[integer,integer]]" }
+    description: "Push every border 'O' cell onto the explicit stack in one frame."
+  - name: visit
+    payload: { cell: "[integer,integer]" }
+    description: "Pop a cell, confirm it is in-bounds and an 'O', mark it '#'."
+  - name: pushNeighbors
+    payload: { cell: "[integer,integer]", pushed: "[[integer,integer]]" }
+    description: "Push the four cardinal neighbors onto the stack (LIFO order: down, up, right, left)."
+  - name: popSkip
+    payload: { cell: "[integer,integer]" }
+    description: "Pop a cell that is out of bounds or already marked; the visited check guards revisits."
+  - name: finalSweepBegin
+    payload: {}
+    description: "Stack drained. Begin the final pass: flip '#' back to 'O' (boundary-connected, restored), flip 'O' to 'X' (surrounded, captured)."
+  - name: finalSweepEnd
+    payload: { captures: "[[integer,integer]]" }
+    description: "Sweep complete. Captured cells highlighted."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-26-graph-dfs-fallback.svg
+  keyframes_used: [0, 1, 8, 18, 19]
+  # init / borders seeded / mid-DFS (5 cells visited) / sweep-begin / sweep-end.
+
+panels:
+  default:
+    chapter: "8.2"
+    label: "DFS-from-boundary on a 5x5 grid"
+    canonical_input: |
+      board:
+        - [X, O, X, O, X]
+        - [O, O, X, O, X]
+        - [X, X, X, O, O]
+        - [X, O, O, X, X]
+        - [X, X, X, X, X]
+      neighbor_order: [down, up, right, left]   # LIFO pop order: left, right, up, down
+      expected_captures: [[3, 1], [3, 2]]
+    presets:
+      - id: canonical
+        label: "5x5 canonical (2 captures, 20 steps)"
+        input:
+          board:
+            - [X, O, X, O, X]
+            - [O, O, X, O, X]
+            - [X, X, X, O, O]
+            - [X, O, O, X, X]
+            - [X, X, X, X, X]
+      - id: all_O
+        label: "All-'O' 4x4 (every cell is boundary-connected; nothing captured)"
+        input:
+          board:
+            - [O, O, O, O]
+            - [O, O, O, O]
+            - [O, O, O, O]
+            - [O, O, O, O]
+      - id: single_surrounded
+        label: "Single surrounded cell in 3x3"
+        input:
+          board:
+            - [X, X, X]
+            - [X, O, X]
+            - [X, X, X]
+    n_steps: 20
+
+    # Trace transcribed verbatim step buffer.
+    # Stack is a list of [r, c] pairs; visited_size is the count of '#'-marked cells.
+    keyframes:
+      - { step:  0, kind: init,            state: { current: null,  stack: [],                                    visited_size: 0 }, narration: "Initial state. 5x5 grid; no cells visited; explicit stack empty." }
+      - { step:  1, kind: seedBorders,     payload: { stack: [[1,0],[2,4],[0,1],[0,3]] }, state: { current: null,  stack: [[1,0],[2,4],[0,1],[0,3]],            visited_size: 0 }, narration: "Seed borders. Four boundary 'O' cells pushed onto the stack: (1,0), (2,4), (0,1), (0,3)." }
+      - { step:  2, kind: visit,           payload: { cell: [0,3] }, state: { current: [0,3], stack: [[1,0],[2,4],[0,1]],                  visited_size: 1 }, narration: "Pop (0,3). In bounds, value 'O'. Mark '#'. visited_size = 1." }
+      - { step:  3, kind: pushNeighbors,   payload: { cell: [0,3], pushed: [[1,3]] }, state: { current: [0,3], stack: [[1,0],[2,4],[0,1],[1,3]],            visited_size: 1 }, narration: "Push four neighbors of (0,3). Three are out of bounds or non-'O' and would no-op when popped; only (1,3) is live." }
+      - { step:  4, kind: visit,           payload: { cell: [1,3] }, state: { current: [1,3], stack: [[1,0],[2,4],[0,1]],                  visited_size: 2 }, narration: "Pop (1,3). Mark '#'. visited_size = 2." }
+      - { step:  5, kind: pushNeighbors,   payload: { cell: [1,3], pushed: [[2,3]] }, state: { current: [1,3], stack: [[1,0],[2,4],[0,1],[2,3]],            visited_size: 2 }, narration: "Push neighbors of (1,3). Only (2,3) is live." }
+      - { step:  6, kind: visit,           payload: { cell: [2,3] }, state: { current: [2,3], stack: [[1,0],[2,4],[0,1]],                  visited_size: 3 }, narration: "Pop (2,3). Mark '#'. visited_size = 3." }
+      - { step:  7, kind: pushNeighbors,   payload: { cell: [2,3], pushed: [[2,4]] }, state: { current: [2,3], stack: [[1,0],[2,4],[0,1],[2,4]],            visited_size: 3 }, narration: "Push neighbors of (2,3). (2,4) is live and goes on the stack -- note (2,4) was already on the stack from the seed phase; the duplicate will be skipped on the second pop." }
+      - { step:  8, kind: visit,           payload: { cell: [2,4] }, state: { current: [2,4], stack: [[1,0],[2,4],[0,1]],                  visited_size: 4 }, narration: "Pop (2,4). In bounds, value 'O'. Mark '#'. visited_size = 4." }
+      - { step:  9, kind: pushNeighbors,   payload: { cell: [2,4], pushed: [] }, state: { current: [2,4], stack: [[1,0],[2,4],[0,1]],                  visited_size: 4 }, narration: "Push neighbors of (2,4). All four are out of bounds or non-'O'; no live neighbors added." }
+      - { step: 10, kind: visit,           payload: { cell: [0,1] }, state: { current: [0,1], stack: [[1,0],[2,4]],                        visited_size: 5 }, narration: "Pop (0,1). Mark '#'. visited_size = 5." }
+      - { step: 11, kind: pushNeighbors,   payload: { cell: [0,1], pushed: [[1,1]] }, state: { current: [0,1], stack: [[1,0],[2,4],[1,1]],                  visited_size: 5 }, narration: "Push neighbors of (0,1). Only (1,1) is live." }
+      - { step: 12, kind: visit,           payload: { cell: [1,1] }, state: { current: [1,1], stack: [[1,0],[2,4]],                        visited_size: 6 }, narration: "Pop (1,1). Mark '#'. visited_size = 6." }
+      - { step: 13, kind: pushNeighbors,   payload: { cell: [1,1], pushed: [[1,0]] }, state: { current: [1,1], stack: [[1,0],[2,4],[1,0]],                  visited_size: 6 }, narration: "Push neighbors of (1,1). (1,0) is live -- and again, (1,0) was on the stack from seeding; the duplicate will be skipped." }
+      - { step: 14, kind: visit,           payload: { cell: [1,0] }, state: { current: [1,0], stack: [[1,0],[2,4]],                        visited_size: 7 }, narration: "Pop (1,0). Mark '#'. visited_size = 7." }
+      - { step: 15, kind: pushNeighbors,   payload: { cell: [1,0], pushed: [] }, state: { current: [1,0], stack: [[1,0],[2,4]],                        visited_size: 7 }, narration: "Push neighbors of (1,0). No live neighbors." }
+      - { step: 16, kind: popSkip,         payload: { cell: [2,4] }, state: { current: [2,4], stack: [[1,0]],                              visited_size: 7 }, narration: "Pop (2,4). Already marked '#' (visited at step 8). Skip. The visited-check guards against revisits." }
+      - { step: 17, kind: popSkip,         payload: { cell: [1,0] }, state: { current: [1,0], stack: [],                                   visited_size: 7 }, narration: "Pop (1,0). Already marked '#'. Skip. Stack drained." }
+      - { step: 18, kind: finalSweepBegin, state: { current: null,  stack: [],                                   visited_size: 7 }, narration: "Stack drained. Begin final sweep: '#' restores to 'O' (border-connected, safe); 'O' becomes 'X' (surrounded, captured)." }
+      - { step: 19, kind: finalSweepEnd,   payload: { captures: [[3,1],[3,2]] }, state: { current: null,  stack: [],                                   visited_size: 7 }, narration: "Final sweep complete. Captured cells: (3,1) and (3,2). Both flipped from 'O' to 'X'." }
+
+selector_default: default
+
+notes: |
+  The trace deliberately preserves the two pop-skip events at steps 16-17.
+  Pedagogically, that is where the visited-check earns its place: the same
+  cell can be pushed multiple times by independent neighbors, and the
+  guard at the top of the visit handler is what makes the algorithm O(V+E)
+  instead of unbounded.
+
+  The final sweep is shown as two events (begin / end) at the algorithm
+  level. A higher-fidelity rendering can subdivide finalSweepEnd into
+  per-cell flip animations for (3,1) and (3,2); both are equivalent to
+  the algorithm-level snapshot.
+
+  Reduced-motion fallback uses keyframes [0, 1, 8, 18, 19]: empty grid /
+  borders seeded / four cells marked mid-DFS / sweep boundary / final.

@@ -1,0 +1,369 @@
+# Sorting visualizer — merge sort (chapter 2.3) + quicksort (chapter 2.4)
+# Dual-panel shared widget. Chapter 2.3 authors panel-a (merge sort);
+# chapter 2.4 authors panel-b (quicksort + partition). This is the canonical
+# "comparison sorts compared" widget where both panels animate the same input
+# under different algorithms with synchronised step-through.
+
+id: w-05-sorting-visualizer
+title: "Sorting visualizer (merge sort + quicksort)"
+type: dual-panel-shared
+level: 1
+modes: [preset, randomize, edit]
+
+caps:
+  array_length: { min: 4, max: 12 }
+  values: { min: -99, max: 99 }
+  step_buffer_per_panel: 25
+  step_buffer_combined: 60
+
+commands:
+  - name: divide
+    payload: { range: '[lo, hi]', mid: 'integer', depth: 'integer' }
+    description: "Panel-a only. Draw a vertical bar at mid; split the bracket into two child brackets."
+  - name: mergeInner
+    payload: { lo: 'integer', left_slice: 'integer[]', right_slice: 'integer[]', result: 'integer[]', depth: 'integer' }
+    description: "Panel-a only. Coalesced inner-merge step at depth >= 1; fade two halves into the merged half."
+  - name: mergeStart
+    payload: { lo: 'integer', left_slice: 'integer[]', right_slice: 'integer[]', depth: 'integer' }
+    description: "Panel-a only. Begin the top-level merge; render two pointers i and j."
+  - name: mergeTakeLeft
+    payload: { lo: 'integer', i: 'integer', j: 'integer', left_val: 'integer', right_val: 'integer', out: 'integer[]' }
+    description: "Panel-a only. left_val <= right_val: emit left_val. The stability decision when left_val == right_val."
+  - name: mergeTakeRight
+    payload: { lo: 'integer', i: 'integer', j: 'integer', left_val: 'integer', right_val: 'integer', out: 'integer[]' }
+    description: "Panel-a only. left_val > right_val: emit right_val."
+  - name: mergeDone
+    payload: { lo: 'integer', result: 'integer[]', depth: 'integer' }
+    description: "Panel-a only. Merge complete; fade pointer overlay."
+  - name: answer
+    payload: { arr: 'integer[]' }
+    description: "Terminal state; entire array sorted."
+  # Panel-b commands (quicksort with median-of-three Lomuto, chapter 2.4):
+  - name: pivotSelect
+    payload: { lo: 'integer', mid: 'integer', hi: 'integer', candidates: 'integer[]', pivot: 'integer', pivot_index: 'integer', depth: 'integer' }
+    description: "Panel-b only. Median-of-three: highlight arr[lo], arr[mid], arr[hi]; reorder so arr[hi] holds the median (pivot)."
+  - name: partition
+    payload: { lo: 'integer', hi: 'integer', pivot: 'integer', pivot_final_index: 'integer', depth: 'integer' }
+    description: "Panel-b only. Lomuto partition: animate the i/j sweep; pivot lands at pivot_final_index; left band <= pivot, right band > pivot."
+  - name: recurseLeft
+    payload: { lo: 'integer', hi: 'integer', parent_pivot_index: 'integer', depth: 'integer' }
+    description: "Panel-b only. Descend into the left sub-range arr[lo..hi]."
+  - name: recurseRight
+    payload: { lo: 'integer', hi: 'integer', parent_pivot_index: 'integer', depth: 'integer' }
+    description: "Panel-b only. Descend into the right sub-range arr[lo..hi]."
+  - name: baseCase
+    payload: { lo: 'integer', hi: 'integer', depth: 'integer' }
+    description: "Panel-b only. Single-element or empty range; recursion returns."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-05-sorting-visualizer-fallback.svg
+  keyframes_used: [0, "n_steps/4", "n_steps/2", "n_steps-1"]
+
+panels:
+  panel-a:
+    chapter: "2.3"
+    label: "Merge sort (top-down recursive)"
+    canonical_input: |
+      nums = [5, 2, 4, 7, 1, 3, 2, 6]
+    presets:
+      - id: canonical
+        label: "Canonical (duplicate keys exercise stability)"
+        input: { nums: [5, 2, 4, 7, 1, 3, 2, 6] }
+      - id: already-sorted
+        label: "Already sorted (short-circuit fires every level)"
+        input: { nums: [1, 2, 3, 4, 5, 6, 7, 8] }
+      - id: reverse-sorted
+        label: "Reverse sorted (worst case for short-circuit)"
+        input: { nums: [8, 7, 6, 5, 4, 3, 2, 1] }
+      - id: all-duplicates
+        label: "All duplicates (every comparison is a stability tie)"
+        input: { nums: [5, 5, 5, 5, 5, 5, 5, 5] }
+    n_steps: 24
+    # Trace generated for canonical preset on [5,2,4,7,1,3,2,6]. The step
+    # buffer captures: 1 init, 7 divide steps (depth-first preorder), 6
+    # coalesced inner merges at depth >= 1, then the top-level merge expanded
+    # to per-comparison rows so the stability decision is visible (step 16:
+    # left wins on `2 <= 2` tie). Final answer at step 23.
+    keyframes:
+      - step: 0
+        kind: init
+        state: { arr: [5, 2, 4, 7, 1, 3, 2, 6], n: 8 }
+        narration: "Input array of 8 elements. Note the two 2s at indices 1 and 6 — they will collide during the top-level merge."
+
+      - step: 1
+        kind: divide
+        payload: { range: [0, 7], mid: 3, depth: 0 }
+        state: { left: [5, 2, 4, 7], right: [1, 3, 2, 6] }
+        narration: "Top-level split at mid=3. Recurse into the left half [5,2,4,7] first."
+      - step: 2
+        kind: divide
+        payload: { range: [0, 3], mid: 1, depth: 1 }
+        state: { left: [5, 2], right: [4, 7] }
+        narration: "Split [5,2,4,7] at mid=1."
+      - step: 3
+        kind: divide
+        payload: { range: [0, 1], mid: 0, depth: 2 }
+        state: { left: [5], right: [2] }
+        narration: "Split [5,2] into singletons [5] and [2]."
+
+      - step: 4
+        kind: mergeInner
+        payload: { lo: 0, left_slice: [5], right_slice: [2], result: [2, 5], depth: 2 }
+        state: { arr_window: [2, 5] }
+        narration: "Merge singletons: 2 < 5, emit 2 then 5."
+      - step: 5
+        kind: divide
+        payload: { range: [2, 3], mid: 2, depth: 2 }
+        state: { left: [4], right: [7] }
+        narration: "Split [4,7] into singletons."
+      - step: 6
+        kind: mergeInner
+        payload: { lo: 2, left_slice: [4], right_slice: [7], result: [4, 7], depth: 2 }
+        state: { arr_window: [4, 7] }
+        narration: "Merge singletons: 4 < 7, already in order."
+      - step: 7
+        kind: mergeInner
+        payload: { lo: 0, left_slice: [2, 5], right_slice: [4, 7], result: [2, 4, 5, 7], depth: 1 }
+        state: { arr_window: [2, 4, 5, 7] }
+        narration: "Merge [2,5] with [4,7]. Left half of the input is now sorted."
+
+      - step: 8
+        kind: divide
+        payload: { range: [4, 7], mid: 5, depth: 1 }
+        state: { left: [1, 3], right: [2, 6] }
+        narration: "Now the right half. Split [1,3,2,6] at mid=5."
+      - step: 9
+        kind: divide
+        payload: { range: [4, 5], mid: 4, depth: 2 }
+        state: { left: [1], right: [3] }
+        narration: "Split [1,3] into singletons."
+      - step: 10
+        kind: mergeInner
+        payload: { lo: 4, left_slice: [1], right_slice: [3], result: [1, 3], depth: 2 }
+        state: { arr_window: [1, 3] }
+        narration: "Merge: 1 < 3, already in order."
+      - step: 11
+        kind: divide
+        payload: { range: [6, 7], mid: 6, depth: 2 }
+        state: { left: [2], right: [6] }
+        narration: "Split [2,6] into singletons."
+      - step: 12
+        kind: mergeInner
+        payload: { lo: 6, left_slice: [2], right_slice: [6], result: [2, 6], depth: 2 }
+        state: { arr_window: [2, 6] }
+        narration: "Merge: 2 < 6, already in order."
+      - step: 13
+        kind: mergeInner
+        payload: { lo: 4, left_slice: [1, 3], right_slice: [2, 6], result: [1, 2, 3, 6], depth: 1 }
+        state: { arr_window: [1, 2, 3, 6] }
+        narration: "Merge [1,3] with [2,6]. Right half of the input is now sorted."
+
+      # Top-level merge: walk it one comparison at a time.
+      # left = [2, 4, 5, 7]   right = [1, 2, 3, 6]
+      - step: 14
+        kind: mergeStart
+        payload: { lo: 0, left_slice: [2, 4, 5, 7], right_slice: [1, 2, 3, 6], depth: 0 }
+        state: { i: 0, j: 0, out: [] }
+        narration: "Top-level merge. Two pointers i and j start at the front of each sorted half."
+      - step: 15
+        kind: mergeTakeRight
+        payload: { lo: 0, i: 0, j: 0, left_val: 2, right_val: 1, out: [1] }
+        state: { i: 0, j: 1 }
+        narration: "left[0]=2 vs right[0]=1. 2 > 1, take right. Emit 1."
+      - step: 16
+        kind: mergeTakeLeft
+        payload: { lo: 0, i: 0, j: 1, left_val: 2, right_val: 2, out: [1, 2] }
+        state: { i: 1, j: 1, stability_tie: true }
+        narration: "left[0]=2 vs right[1]=2. Tie. Because the merge uses <=, take left. The 2 from the original input index 1 emits before the 2 from index 6. Stability holds."
+      - step: 17
+        kind: mergeTakeRight
+        payload: { lo: 0, i: 1, j: 1, left_val: 4, right_val: 2, out: [1, 2, 2] }
+        state: { i: 1, j: 2 }
+        narration: "left[1]=4 vs right[1]=2. 4 > 2, take right. Emit 2."
+      - step: 18
+        kind: mergeTakeRight
+        payload: { lo: 0, i: 1, j: 2, left_val: 4, right_val: 3, out: [1, 2, 2, 3] }
+        state: { i: 1, j: 3 }
+        narration: "left[1]=4 vs right[2]=3. 4 > 3, take right. Emit 3."
+      - step: 19
+        kind: mergeTakeLeft
+        payload: { lo: 0, i: 1, j: 3, left_val: 4, right_val: 6, out: [1, 2, 2, 3, 4] }
+        state: { i: 2, j: 3 }
+        narration: "left[1]=4 vs right[3]=6. 4 < 6, take left. Emit 4."
+      - step: 20
+        kind: mergeTakeLeft
+        payload: { lo: 0, i: 2, j: 3, left_val: 5, right_val: 6, out: [1, 2, 2, 3, 4, 5] }
+        state: { i: 3, j: 3 }
+        narration: "left[2]=5 vs right[3]=6. 5 < 6, take left. Emit 5."
+      - step: 21
+        kind: mergeTakeRight
+        payload: { lo: 0, i: 3, j: 3, left_val: 7, right_val: 6, out: [1, 2, 2, 3, 4, 5, 6] }
+        state: { i: 3, j: 4 }
+        narration: "left[3]=7 vs right[3]=6. 7 > 6, take right. Right half exhausted; drain remaining left."
+      - step: 22
+        kind: mergeDone
+        payload: { lo: 0, result: [1, 2, 2, 3, 4, 5, 6, 7], depth: 0 }
+        state: { i: 4, j: 4 }
+        narration: "Drain left: emit 7. Merge complete."
+
+      - step: 23
+        kind: answer
+        payload: { arr: [1, 2, 2, 3, 4, 5, 6, 7] }
+        state: { sorted: true }
+        narration: "Final sorted array. The 2 from input index 1 sits at output index 1; the 2 from input index 6 sits at output index 2. Relative order preserved."
+
+  panel-b:
+    chapter: "2.4"
+    label: "Quicksort + median-of-three Lomuto partition"
+    canonical_input: |
+      nums = [5, 2, 4, 7, 1, 3, 2, 6]
+      pivot_strategy = median_of_three
+      partition_scheme = lomuto
+    presets:
+      - id: canonical
+        label: "Canonical (matches panel-a's input for direct comparison)"
+        input: { nums: [5, 2, 4, 7, 1, 3, 2, 6], pivot_strategy: median_of_three, partition_scheme: lomuto }
+      - id: sorted-naive-trap
+        label: "Sorted input + naive last-pivot Lomuto (the O(n^2) trap)"
+        input: { nums: [1, 2, 3, 4, 5, 6, 7, 8], pivot_strategy: last_element_naive, partition_scheme: lomuto }
+      - id: sorted-mot-fixed
+        label: "Sorted input + median-of-three (the fix)"
+        input: { nums: [1, 2, 3, 4, 5, 6, 7, 8], pivot_strategy: median_of_three, partition_scheme: lomuto }
+      - id: all-duplicates-three-way
+        label: "All duplicates with three-way partition (entropy-optimal)"
+        input: { nums: [5, 5, 5, 5, 5, 5, 5, 5], pivot_strategy: median_of_three, partition_scheme: three_way }
+    n_steps: 22
+    # Trace generated by trace_widget.py instrumenting the verified Python
+    # reference (sol.py) on [5,2,4,7,1,3,2,6] with median-of-three + Lomuto.
+    # Three full levels of recursion (depth 0..3); duplicate 2s travel
+    # together; first partition picks pivot 6 cleanly.
+    keyframes:
+      - step: 0
+        kind: init
+        state: { arr: [5, 2, 4, 7, 1, 3, 2, 6], n: 8 }
+        narration: "Input array of 8 elements, sort range [0..7]. Same input as panel-a so the structural contrast — partition vs merge — is visible at every step."
+
+      - step: 1
+        kind: pivotSelect
+        payload: { lo: 0, mid: 3, hi: 7, candidates: [5, 7, 6], pivot: 6, pivot_index: 7, depth: 0 }
+        state: { arr: [5, 2, 4, 7, 1, 3, 2, 6] }
+        narration: "Pivot-select on arr[0..7]: median of (arr[0]=5, arr[3]=7, arr[7]=6) is 6, placed at index 7."
+      - step: 2
+        kind: partition
+        payload: { lo: 0, hi: 7, pivot: 6, pivot_final_index: 6, depth: 0 }
+        state: { arr: [5, 2, 4, 1, 3, 2, 6, 7] }
+        narration: "Partition arr[0..7] with pivot=6. Pivot lands at index 6. Left band [5,2,4,1,3,2] <= 6; right band [7] > 6."
+
+      - step: 3
+        kind: recurseLeft
+        payload: { lo: 0, hi: 5, parent_pivot_index: 6, depth: 0 }
+        state: { arr: [5, 2, 4, 1, 3, 2, 6, 7] }
+        narration: "Recurse into the left sub-range arr[0..5]."
+      - step: 4
+        kind: pivotSelect
+        payload: { lo: 0, mid: 2, hi: 5, candidates: [5, 4, 2], pivot: 4, pivot_index: 5, depth: 1 }
+        state: { arr: [2, 2, 5, 1, 3, 4, 6, 7] }
+        narration: "Pivot-select on arr[0..5]: median of (5, 4, 2) is 4, placed at index 5."
+      - step: 5
+        kind: partition
+        payload: { lo: 0, hi: 5, pivot: 4, pivot_final_index: 4, depth: 1 }
+        state: { arr: [2, 2, 1, 3, 4, 5, 6, 7] }
+        narration: "Partition arr[0..5] with pivot=4. Pivot lands at index 4."
+
+      - step: 6
+        kind: recurseLeft
+        payload: { lo: 0, hi: 3, parent_pivot_index: 4, depth: 1 }
+        state: { arr: [2, 2, 1, 3, 4, 5, 6, 7] }
+        narration: "Recurse into arr[0..3]."
+      - step: 7
+        kind: pivotSelect
+        payload: { lo: 0, mid: 1, hi: 3, candidates: [2, 2, 3], pivot: 2, pivot_index: 3, depth: 2 }
+        state: { arr: [2, 3, 1, 2, 4, 5, 6, 7] }
+        narration: "Pivot-select on arr[0..3]: median of (2, 2, 3) is 2. The duplicate 2s collide here; median-of-three picks one of them."
+      - step: 8
+        kind: partition
+        payload: { lo: 0, hi: 3, pivot: 2, pivot_final_index: 2, depth: 2 }
+        state: { arr: [2, 1, 2, 3, 4, 5, 6, 7] }
+        narration: "Partition arr[0..3] with pivot=2. Pivot lands at index 2; the two 2s end up adjacent. Quicksort is not stable: the relative order of the two 2s may differ from the input."
+
+      - step: 9
+        kind: recurseLeft
+        payload: { lo: 0, hi: 1, parent_pivot_index: 2, depth: 2 }
+        state: { arr: [2, 1, 2, 3, 4, 5, 6, 7] }
+        narration: "Recurse into arr[0..1]."
+      - step: 10
+        kind: pivotSelect
+        payload: { lo: 0, mid: 0, hi: 1, candidates: [2, 2, 1], pivot: 1, pivot_index: 1, depth: 3 }
+        state: { arr: [2, 1, 2, 3, 4, 5, 6, 7] }
+        narration: "Pivot-select on arr[0..1]: median of (2, 2, 1) is 1, placed at index 1."
+      - step: 11
+        kind: partition
+        payload: { lo: 0, hi: 1, pivot: 1, pivot_final_index: 0, depth: 3 }
+        state: { arr: [1, 2, 2, 3, 4, 5, 6, 7] }
+        narration: "Partition arr[0..1] with pivot=1. Pivot lands at index 0. The array is now sorted; remaining steps are recursion-return base cases."
+
+      - step: 12
+        kind: recurseLeft
+        payload: { lo: 0, hi: -1, parent_pivot_index: 0, depth: 3 }
+        state: { arr: [1, 2, 2, 3, 4, 5, 6, 7] }
+        narration: "Empty range arr[0..-1]; immediate return."
+      - step: 13
+        kind: recurseRight
+        payload: { lo: 1, hi: 1, parent_pivot_index: 0, depth: 3 }
+        state: { arr: [1, 2, 2, 3, 4, 5, 6, 7] }
+        narration: "Single-element range arr[1..1]."
+      - step: 14
+        kind: baseCase
+        payload: { lo: 1, hi: 1, depth: 4 }
+        state: { arr: [1, 2, 2, 3, 4, 5, 6, 7] }
+        narration: "Base case: arr[1]=2 is sorted by itself."
+
+      - step: 15
+        kind: recurseRight
+        payload: { lo: 3, hi: 3, parent_pivot_index: 2, depth: 2 }
+        state: { arr: [1, 2, 2, 3, 4, 5, 6, 7] }
+        narration: "Single-element range arr[3..3]."
+      - step: 16
+        kind: baseCase
+        payload: { lo: 3, hi: 3, depth: 3 }
+        state: { arr: [1, 2, 2, 3, 4, 5, 6, 7] }
+        narration: "Base case: arr[3]=3 is sorted."
+      - step: 17
+        kind: recurseRight
+        payload: { lo: 5, hi: 5, parent_pivot_index: 4, depth: 1 }
+        state: { arr: [1, 2, 2, 3, 4, 5, 6, 7] }
+        narration: "Single-element range arr[5..5]."
+      - step: 18
+        kind: baseCase
+        payload: { lo: 5, hi: 5, depth: 2 }
+        state: { arr: [1, 2, 2, 3, 4, 5, 6, 7] }
+        narration: "Base case: arr[5]=5 is sorted."
+      - step: 19
+        kind: recurseRight
+        payload: { lo: 7, hi: 7, parent_pivot_index: 6, depth: 0 }
+        state: { arr: [1, 2, 2, 3, 4, 5, 6, 7] }
+        narration: "Single-element range arr[7..7]."
+      - step: 20
+        kind: baseCase
+        payload: { lo: 7, hi: 7, depth: 1 }
+        state: { arr: [1, 2, 2, 3, 4, 5, 6, 7] }
+        narration: "Base case: arr[7]=7 is sorted."
+
+      - step: 21
+        kind: answer
+        payload: { arr: [1, 2, 2, 3, 4, 5, 6, 7] }
+        state: { sorted: true }
+        narration: "Final sorted array. Three levels of recursion descended; partition did all the work; no merge step."
+
+selector_default: panel-a
+
+notes: |
+  The dual-panel widget pairs chapter 2.3 (merge sort) and chapter 2.4
+  (quicksort) on the same canonical input [5,2,4,7,1,3,2,6]. Synchronised
+  step-through advances both panels by one step on each click; whichever
+  algorithm finishes first sits in its terminal state until the other catches
+  up. The structural contrast — merge sort decomposes top-down then merges
+  back up; quicksort partitions in place and recurses without a merge step —
+  is the chapter pair's central teaching device.
+  Reduced-motion fallback: four static keyframes (init, mid, near-done, final).

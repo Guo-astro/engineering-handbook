@@ -1,0 +1,212 @@
+# Heap operations — chapter widget for 6.4
+# Single-panel widget animating sift-up after push and sift-down after pop on
+# a small max-heap. Canonical input byte-for-byte:
+# initial heap [9, 7, 8, 3, 6, 2, 5], then push(10), then pop_max().
+
+id: w-18-heap-operations
+title: "Heap operations: sift-up after push, sift-down after pop"
+type: single-panel
+level: 1
+modes: [preset, edit]
+
+caps:
+  initial_heap_size: { min: 1, max: 15 }
+  total_steps: { max: 30 }
+
+commands:
+  - name: init
+    payload: { heap: 'array<integer>' }
+    description: "Render the array as a 4-level complete binary tree; each parent dominates its children."
+  - name: push_append
+    payload: { value: 'integer', index: 'integer' }
+    description: "Append the new value to the end of the array; render at index n."
+  - name: compare
+    payload: { a: 'integer', b: 'integer', a_val: 'integer', b_val: 'integer', decision: 'string' }
+    description: "Highlight the parent/child pair under inspection; show comparison decision."
+  - name: swap
+    payload: { a: 'integer', b: 'integer' }
+    description: "Swap two array slots; tree edge re-renders to reflect new positions."
+  - name: sift_up_done
+    payload: { root_value: 'integer' }
+    description: "Sift-up complete; new value has reached its final position."
+  - name: pop_extract_root
+    payload: { root_value: 'integer' }
+    description: "Highlight the root for extraction; the returned value is the max."
+  - name: move_last_to_root
+    payload: { value: 'integer' }
+    description: "Move the last leaf to the root slot; the heap now has size n - 1."
+  - name: sift_down_done
+    payload: { root_value: 'integer', heap_size: 'integer' }
+    description: "Sift-down complete; max-heap property restored."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-18-heap-operations-fallback.svg
+  keyframes_used: [0, 1, 8, 9, 15]
+
+panels:
+  default:
+    chapter: "6.4"
+    label: "Push 10 then pop_max() on a 7-element max-heap"
+    canonical_input: |
+      initial_heap = [9, 7, 8, 3, 6, 2, 5]
+      operations = [push(10), pop_max()]
+    presets:
+      - id: chapter_canonical
+        label: "7-element heap, push(10), pop_max()"
+        input:
+          initial_heap: [9, 7, 8, 3, 6, 2, 5]
+          operations: ["push(10)", "pop_max()"]
+    n_steps: 16
+    keyframes:
+      - step: 0
+        kind: init
+        payload: { heap: [9, 7, 8, 3, 6, 2, 5] }
+        state:
+          phase: "init"
+          heap: [9, 7, 8, 3, 6, 2, 5]
+          n: 7
+        narration: "Starting heap. Root is 9 (the max); each parent dominates its children."
+      - step: 1
+        kind: push_append
+        payload: { value: 10, index: 7 }
+        state:
+          phase: "push-append"
+          heap: [9, 7, 8, 3, 6, 2, 5, 10]
+          n: 8
+          new_index: 7
+          parent_index: 3
+        narration: "push(10): append 10 at index 7. Parent at index 3 holds value 3. Heap property is violated; sift up."
+      - step: 2
+        kind: compare
+        payload: { a: 7, b: 3, a_val: 10, b_val: 3, decision: "swap (10 > 3)" }
+        state:
+          phase: "compare"
+          heap: [9, 7, 8, 3, 6, 2, 5, 10]
+          highlight: { child: 7, parent: 3 }
+        narration: "Compare child 10 against parent 3. Child wins; swap."
+      - step: 3
+        kind: swap
+        payload: { a: 7, b: 3 }
+        state:
+          phase: "swap"
+          heap: [9, 7, 8, 10, 6, 2, 5, 3]
+          highlight: { positions: [3, 7] }
+        narration: "Swap. 10 climbs to index 3; 3 sinks to index 7."
+      - step: 4
+        kind: compare
+        payload: { a: 3, b: 1, a_val: 10, b_val: 7, decision: "swap (10 > 7)" }
+        state:
+          phase: "compare"
+          heap: [9, 7, 8, 10, 6, 2, 5, 3]
+          highlight: { child: 3, parent: 1 }
+        narration: "Compare child 10 against parent 7. Child wins; swap."
+      - step: 5
+        kind: swap
+        payload: { a: 3, b: 1 }
+        state:
+          phase: "swap"
+          heap: [9, 10, 8, 7, 6, 2, 5, 3]
+          highlight: { positions: [1, 3] }
+        narration: "Swap. 10 climbs to index 1; 7 sinks to index 3."
+      - step: 6
+        kind: compare
+        payload: { a: 1, b: 0, a_val: 10, b_val: 9, decision: "swap (10 > 9)" }
+        state:
+          phase: "compare"
+          heap: [9, 10, 8, 7, 6, 2, 5, 3]
+          highlight: { child: 1, parent: 0 }
+        narration: "Compare child 10 against parent 9 (the old root). Child wins; swap."
+      - step: 7
+        kind: swap
+        payload: { a: 1, b: 0 }
+        state:
+          phase: "swap"
+          heap: [10, 9, 8, 7, 6, 2, 5, 3]
+          highlight: { positions: [0, 1] }
+        narration: "Swap. 10 reaches the root."
+      - step: 8
+        kind: sift_up_done
+        payload: { root_value: 10 }
+        state:
+          phase: "sift-up-done"
+          heap: [10, 9, 8, 7, 6, 2, 5, 3]
+          n: 8
+        narration: "Sift-up done. 10 is the new root after three swaps; path length log2(8) = 3."
+      - step: 9
+        kind: pop_extract_root
+        payload: { root_value: 10 }
+        state:
+          phase: "pop-extract-root"
+          heap: [10, 9, 8, 7, 6, 2, 5]
+          n: 7
+          extracted: 10
+        narration: "pop_max() returns 10. Root slot is now empty; size drops to 7."
+      - step: 10
+        kind: move_last_to_root
+        payload: { value: 3 }
+        state:
+          phase: "move-last-to-root"
+          heap: [3, 9, 8, 7, 6, 2, 5]
+          highlight: { position: 0 }
+        narration: "Move the last leaf (3) into the root slot. Heap property is now violated downward; sift down."
+      - step: 11
+        kind: compare
+        payload: { a: 0, b: 1, a_val: 3, b_val: 9, decision: "largest=left (9); swap" }
+        state:
+          phase: "compare"
+          heap: [3, 9, 8, 7, 6, 2, 5]
+          highlight: { node: 0, left: 1, right: 2 }
+        narration: "At root: left child 9, right child 8. Largest is left. Swap with left."
+      - step: 12
+        kind: swap
+        payload: { a: 0, b: 1 }
+        state:
+          phase: "swap"
+          heap: [9, 3, 8, 7, 6, 2, 5]
+          highlight: { positions: [0, 1] }
+        narration: "Swap. 9 takes the root; 3 sinks to index 1."
+      - step: 13
+        kind: compare
+        payload: { a: 1, b: 3, a_val: 3, b_val: 7, decision: "largest=left (7); swap" }
+        state:
+          phase: "compare"
+          heap: [9, 3, 8, 7, 6, 2, 5]
+          highlight: { node: 1, left: 3, right: 4 }
+        narration: "At index 1: left child 7, right child 6. Largest is left. Swap with left."
+      - step: 14
+        kind: swap
+        payload: { a: 1, b: 3 }
+        state:
+          phase: "swap"
+          heap: [9, 7, 8, 3, 6, 2, 5]
+          highlight: { positions: [1, 3] }
+        narration: "Swap. 7 takes index 1; 3 sinks to index 3 (a leaf with no children to violate)."
+      - step: 15
+        kind: sift_down_done
+        payload: { root_value: 9, heap_size: 7 }
+        state:
+          phase: "sift-down-done"
+          heap: [9, 7, 8, 3, 6, 2, 5]
+          n: 7
+        narration: "Sift-down done. New root is 9; the heap is back to its starting shape since we pushed and immediately popped the same maximum."
+
+selector_default: default
+
+notes: |
+  Chapter 6.4 widget (mechanics-driven). Demonstrates sift-up and sift-down
+  on a single binary heap by playing one push and one pop in sequence on a
+  7-element starter heap. 16 steps total, well under the 30-step cap.
+  Canonical input copied byte-for-byte; final array
+  state matches the §2.2 Python reference's sift_up / sift_down output.
+
+  Wong palette: orange for the active node currently being sifted,
+  sky blue for the parent/child being compared against, vermilion for
+  the root being extracted, bluish green for the post-op final root,
+  yellow for the in-flight last leaf during move-last-to-root.
+  aria-live="polite" announces each step using the narration field.
+
+  Pedagogical purpose: readers see that both sift-up and sift-down walk
+  exactly one root-to-leaf path, which is why each is O(log n). The
+  push+pop-of-the-same-max sequence returns the heap to its starting
+  shape, making the round-trip visually obvious.

@@ -1,6 +1,6 @@
 # Style Guide
 
-This style guide defines **how we write** in the HLD Handbook. Every chapter is checked against these rules in CI and in human review.
+This style guide defines **how we write** in The Engineering Handbook (HLD, DSA, and any future curricula in this repo). Every chapter is checked against these rules in CI and in human review.
 
 If you are a contributor, read this once, then keep it open in a tab while you write.
 
@@ -83,7 +83,7 @@ Every teaching chapter (Parts 0 to 7, 9, 10, and 11) follows this skeleton:
 13. ## Flashcards
 ```
 
-Case studies (Part 8) follow a 10-step template. See [`content/part-8-case-studies/00-url-shortener.md`](content/part-8-case-studies/00-url-shortener.md) for the canonical example:
+Case studies (Part 8) follow a 10-step template. See [`content/hld/part-8-case-studies/00-url-shortener.md`](content/hld/part-8-case-studies/00-url-shortener.md) for the canonical example:
 
 ```text
 1. Problem Statement
@@ -142,13 +142,13 @@ Tables are the preferred format whenever the comparison is symmetric (every opti
 | ...      | ...  | ...  | ...       | ...      |
 ```
 
-Start here. The default is fine whenever pros and cons genuinely differ per row. See the consistency-level comparison in [`content/part-3-distributed-systems-theory/01-consistency-deep-dive.md`](content/part-3-distributed-systems-theory/01-consistency-deep-dive.md).
+Start here. The default is fine whenever pros and cons genuinely differ per row. See the consistency-level comparison in [`content/hld/part-3-distributed-systems-theory/01-consistency-deep-dive.md`](content/hld/part-3-distributed-systems-theory/01-consistency-deep-dive.md).
 
 Replace it with decision-specific columns whenever the topic has clearer axes: throughput, latency, ordering, cost, coordination, write-amplification, whatever actually separates the rows. Cut any column whose values are roughly the same across rows; keep an "Our pick" column. Three chapters model the pattern:
 
-- [`content/part-2-building-blocks/08-message-queues-streaming.md`](content/part-2-building-blocks/08-message-queues-streaming.md): `Throughput | Ordering | Replay | Ops burden | Cost model | Our pick`.
-- [`content/part-4-data-systems/00-storage-engines.md`](content/part-4-data-systems/00-storage-engines.md): numeric write-amplification and compression-ratio columns.
-- [`content/part-8-case-studies/27-unique-id-generator.md`](content/part-8-case-studies/27-unique-id-generator.md): `Bit-width | Coordination | B-tree locality | Our pick`.
+- [`content/hld/part-2-building-blocks/08-message-queues-streaming.md`](content/hld/part-2-building-blocks/08-message-queues-streaming.md): `Throughput | Ordering | Replay | Ops burden | Cost model | Our pick`.
+- [`content/hld/part-4-data-systems/00-storage-engines.md`](content/hld/part-4-data-systems/00-storage-engines.md): numeric write-amplification and compression-ratio columns.
+- [`content/hld/part-8-case-studies/27-unique-id-generator.md`](content/hld/part-8-case-studies/27-unique-id-generator.md): `Bit-width | Coordination | B-tree locality | Our pick`.
 
 ## Formatting
 
@@ -246,7 +246,7 @@ Never invent ad-hoc tags (e.g. `slack`, `whisper`, `bloom-filter`). Case studies
 
 ### Part 8 case-study themes
 
-Every chapter in `content/part-8-case-studies/` must declare one additional field, `theme:`, that groups it into a pedagogical bucket. The theme is editorial only: it never changes the chapter's URL, its Part 8 number, or any cross-reference. It lets the Part 8 landing page and the README surface the 56 case studies as a menu rather than a queue.
+Every chapter in `content/hld/part-8-case-studies/` must declare one additional field, `theme:`, that groups it into a pedagogical bucket. The theme is editorial only: it never changes the chapter's URL, its Part 8 number, or any cross-reference. It lets the Part 8 landing page and the README surface the 56 case studies as a menu rather than a queue.
 
 | Theme | What belongs here | Examples |
 |---|---|---|
@@ -257,6 +257,20 @@ Every chapter in `content/part-8-case-studies/` must declare one additional fiel
 | `infrastructure-platforms` | Platforms that other engineers build on: observability, CI/CD, API edge, routing. | api-gateway, cicd-platform, observability-platform, dns-service, metrics-pipeline |
 
 If a new case study does not fit cleanly into one theme, prefer the closest match and raise the ambiguity in the PR description. Do not invent new themes without discussion; `scripts/check-frontmatter.mjs` enforces the allowlist.
+
+## DSA-specific deviations
+
+DSA chapters under `content/dsa/` follow a different shape from HLD chapters. Most rules in this guide (voice, citations, Mermaid, prose hygiene) apply unchanged; the deviations are in the chapter shape, identifier conventions, and code-sample layout.
+
+**Chapter shape.** Practice-first: open with a one-screen cheat-sheet table (operations, time, space, gotcha), then a deep dive on the data structure or pattern, then a sequence of "prompt cards" — each one a representative LeetCode problem with a custom worked example, a `<details>`-wrapped solution walkthrough, and a "Common mistakes" block. The canonical reference is [`content/dsa/part-1-linear-data-structures/00-arrays.md`](content/dsa/part-1-linear-data-structures/00-arrays.md).
+
+**Frontmatter.** DSA chapters use `slug`, `part`, `chapter`, `prerequisites`, `date_updated`, `languages`, `canonical_test`, `widgets`, and `ladder` (with `core`, `stretch`, `star` keys). They do **not** use HLD's `module`, `tags`, or `technologies` fields. `slug` must equal the filename without `.md`. `languages` is a non-empty subset of `[python, java, cpp, go]`. `canonical_test` is either null or a `LC-NNNN` ID present in [`_problem-registry.yml`](content/dsa/_problem-registry.yml).
+
+**Code samples.** Each LeetCode problem the chapter teaches lives in a sibling directory `<chapter-slug>/lc-NNN/` with four solution files (`sol.py`, `sol.java`, `sol.cpp`, `sol.go`) plus a `cases.json` for tests. Inline the Python solution in the chapter as a fenced block; link the Java/C++/Go siblings on a single "Other languages" line. Solutions must be self-contained, idiomatic, and pass the cases in `cases.json`.
+
+**Identifier conventions.** Problems are referenced by `LC-NNN` (e.g. `LC-088`, `LC-189`) and registered in [`content/dsa/_problem-registry.yml`](content/dsa/_problem-registry.yml). Interactive widgets are referenced by `w-NN-<slug>` for canonical pattern widgets (e.g. `w-15-lru-cache`) or `e-LCNNN-<slug>` for editorial widgets, and registered in [`content/dsa/_widget-registry.yml`](content/dsa/_widget-registry.yml). On GitHub, widget callouts link to the YAML spec; the rendered widget itself lives on the website.
+
+**Editorials and patterns.** Long-form per-LC editorials live under `content/dsa/editorials/`, and pattern decision references (one per major pattern family) live under `content/dsa/patterns/`. Both have thinner frontmatter schemas — see existing files for the shape.
 
 ## Diagrams
 

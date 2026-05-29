@@ -1,0 +1,284 @@
+# Z-algorithm
+# Single-panel chapter widget for 12.3. Animates the Z-array construction
+# on the canonical input s = "aabaabcaab" (length 10) over 19 steps.
+# Trace transcribed verbatim step buffer; deterministic
+# replay against the §2.2 Python reference produces byte-identical output
+#.
+#
+# Widget id is w-40 (not w-39) because w-39 was already claimed by
+# Huffman encoding in chapter 10.3. Research draft used w-41-z-algorithm
+# as a placeholder; the next-free-id rule lands at w-40.
+
+id: w-40-z-array
+title: "Z-array construction with the [l, r) match window"
+type: single-panel
+level: 2
+modes: [preset, randomize, edit]
+
+caps:
+  string_length: { min: 2, max: 32 }
+  trace_length: { max: 1000 }
+
+commands:
+  - name: init
+    payload: { s: 'string', z: 'array<integer>' }
+    description: "Initialize z to zeros; window [l, r) = [0, 0)."
+  - name: trivialInit
+    payload: { i: 'integer', branch: 'enum<i>=r>' }
+    description: "i is outside the window; start z[i] = 0 and prepare to extend."
+  - name: mirror
+    payload: { i: 'integer', k: 'integer', branch: 'enum<mirror_inside|mirror_clip>', zSet: 'integer' }
+    description: "i is inside [l, r); seed z[i] from the mirror at k = i - l, capped by r - i."
+  - name: extend
+    payload: { i: 'integer', extensions: 'integer', stoppedBy: 'enum<mismatch|end-of-string>' }
+    description: "Run the inner while: extend z[i] one character at a time."
+  - name: slideWindow
+    payload: { newL: 'integer', newR: 'integer' }
+    description: "i + z[i] > r; slide the match window to [i, i + z[i])."
+  - name: answer
+    payload: { z: 'array<integer>' }
+    description: "All positions computed; emit the final Z-array."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-40-z-array-fallback.svg
+  keyframes_used: [0, 3, 8, 9, 15, 18]
+
+panels:
+  default:
+    chapter: "12.3"
+    label: "Z-array on aabaabcaab — trivial init, mirror reuse, window slide"
+    canonical_input: |
+      s = "aabaabcaab"
+      expected_z = [0, 1, 0, 3, 1, 0, 0, 3, 1, 0]
+    presets:
+      - id: canonical
+        label: "aabaabcaab — covers all three branches"
+        input:
+          s: "aabaabcaab"
+      - id: all-equal
+        label: "aaaa — degenerate; mirror-clip branch on every step"
+        input:
+          s: "aaaa"
+      - id: extension-branch
+        label: "aaabaaaab — triggers mirror-clip with extension past r"
+        input:
+          s: "aaabaaaab"
+      - id: lc28-pattern-match
+        label: "ll#hello — pattern matching via concatenation"
+        input:
+          s: "ll#hello"
+    n_steps: 19
+    keyframes:
+      - step_id: 0
+        action: init
+        highlights: ["string-row", "z-row"]
+        state_snapshot:
+          s: "aabaabcaab"
+          i: null
+          l: 0
+          r: 0
+          z: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        narration: "init: z all zeros; window [l, r) = [0, 0). z[0] = 0 by convention."
+      - step_id: 1
+        action: trivialInit
+        highlights: ["i-marker"]
+        state_snapshot:
+          i: 1
+          l: 0
+          r: 0
+          z: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+          branch: "i>=r"
+        narration: "i=1 outside the window. start z[1]=0; compare s[0] to s[1]."
+      - step_id: 2
+        action: extend
+        highlights: ["i-marker", "z-cell-1"]
+        state_snapshot:
+          i: 1
+          l: 0
+          r: 0
+          z: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0]
+          extensions: 1
+          stoppedBy: mismatch
+        narration: "match s[0]='a'=s[1]='a'; mismatch s[1]='a' vs s[2]='b'. z[1]=1."
+      - step_id: 3
+        action: slideWindow
+        highlights: ["window-band"]
+        state_snapshot:
+          i: 1
+          l: 1
+          r: 2
+          z: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0]
+        narration: "i+z[i]=2 > r=0. slide window to [1, 2)."
+      - step_id: 4
+        action: trivialInit
+        highlights: ["i-marker"]
+        state_snapshot:
+          i: 2
+          l: 1
+          r: 2
+          z: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0]
+          branch: "i>=r"
+        narration: "i=2 not strictly less than r=2. trivial init."
+      - step_id: 5
+        action: extend
+        highlights: ["i-marker"]
+        state_snapshot:
+          i: 2
+          l: 1
+          r: 2
+          z: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0]
+          extensions: 0
+          stoppedBy: mismatch
+        narration: "mismatch s[0]='a' vs s[2]='b'. z[2]=0; window unchanged."
+      - step_id: 6
+        action: trivialInit
+        highlights: ["i-marker"]
+        state_snapshot:
+          i: 3
+          l: 1
+          r: 2
+          z: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0]
+          branch: "i>=r"
+        narration: "i=3 outside window. trivial init; compare s[0] to s[3]."
+      - step_id: 7
+        action: extend
+        highlights: ["i-marker", "z-cell-3"]
+        state_snapshot:
+          i: 3
+          l: 1
+          r: 2
+          z: [0, 1, 0, 3, 0, 0, 0, 0, 0, 0]
+          extensions: 3
+          stoppedBy: mismatch
+        narration: "three matches: 'aab' at 0..2 equals 'aab' at 3..5; mismatch s[3]='a' vs s[6]='c'. z[3]=3."
+      - step_id: 8
+        action: slideWindow
+        highlights: ["window-band"]
+        state_snapshot:
+          i: 3
+          l: 3
+          r: 6
+          z: [0, 1, 0, 3, 0, 0, 0, 0, 0, 0]
+        narration: "slide window to [3, 6); s[3:6] is now known to equal s[0:3]."
+      - step_id: 9
+        action: mirror
+        highlights: ["i-marker", "mirror-marker", "z-cell-4"]
+        state_snapshot:
+          i: 4
+          l: 3
+          r: 6
+          z: [0, 1, 0, 3, 1, 0, 0, 0, 0, 0]
+          k: 1
+          branch: "mirror_inside"
+          zSet: 1
+        narration: "i=4 inside [3,6); k=4-3=1; z[1]=1 < r-i=2. set z[4]=1; no extension possible."
+      - step_id: 10
+        action: mirror
+        highlights: ["i-marker", "mirror-marker"]
+        state_snapshot:
+          i: 5
+          l: 3
+          r: 6
+          z: [0, 1, 0, 3, 1, 0, 0, 0, 0, 0]
+          k: 2
+          branch: "mirror_inside"
+          zSet: 0
+        narration: "i=5 inside [3,6); k=2; z[2]=0. set z[5]=0."
+      - step_id: 11
+        action: trivialInit
+        highlights: ["i-marker"]
+        state_snapshot:
+          i: 6
+          l: 3
+          r: 6
+          z: [0, 1, 0, 3, 1, 0, 0, 0, 0, 0]
+          branch: "i>=r"
+        narration: "i=6 = r, treated as outside. start z[6]=0."
+      - step_id: 12
+        action: extend
+        highlights: ["i-marker"]
+        state_snapshot:
+          i: 6
+          l: 3
+          r: 6
+          z: [0, 1, 0, 3, 1, 0, 0, 0, 0, 0]
+          extensions: 0
+          stoppedBy: mismatch
+        narration: "mismatch s[0]='a' vs s[6]='c'. z[6]=0."
+      - step_id: 13
+        action: trivialInit
+        highlights: ["i-marker"]
+        state_snapshot:
+          i: 7
+          l: 3
+          r: 6
+          z: [0, 1, 0, 3, 1, 0, 0, 0, 0, 0]
+          branch: "i>=r"
+        narration: "i=7 > r=6. trivial init; compare s[0] to s[7]."
+      - step_id: 14
+        action: extend
+        highlights: ["i-marker", "z-cell-7"]
+        state_snapshot:
+          i: 7
+          l: 3
+          r: 6
+          z: [0, 1, 0, 3, 1, 0, 0, 3, 0, 0]
+          extensions: 3
+          stoppedBy: end-of-string
+        narration: "three matches: 'aab' at 0..2 equals 'aab' at 7..9; reach end of string. z[7]=3."
+      - step_id: 15
+        action: slideWindow
+        highlights: ["window-band"]
+        state_snapshot:
+          i: 7
+          l: 7
+          r: 10
+          z: [0, 1, 0, 3, 1, 0, 0, 3, 0, 0]
+        narration: "slide window to [7, 10); s[7:10] is a prefix of s."
+      - step_id: 16
+        action: mirror
+        highlights: ["i-marker", "mirror-marker"]
+        state_snapshot:
+          i: 8
+          l: 7
+          r: 10
+          z: [0, 1, 0, 3, 1, 0, 0, 3, 1, 0]
+          k: 1
+          branch: "mirror_inside"
+          zSet: 1
+        narration: "i=8 inside [7,10); k=1; z[1]=1 < r-i=2. set z[8]=1."
+      - step_id: 17
+        action: mirror
+        highlights: ["i-marker", "mirror-marker"]
+        state_snapshot:
+          i: 9
+          l: 7
+          r: 10
+          z: [0, 1, 0, 3, 1, 0, 0, 3, 1, 0]
+          k: 2
+          branch: "mirror_inside"
+          zSet: 0
+        narration: "i=9 inside [7,10); k=2; z[2]=0. set z[9]=0."
+      - step_id: 18
+        action: answer
+        highlights: ["z-row"]
+        state_snapshot:
+          i: null
+          l: 7
+          r: 10
+          z: [0, 1, 0, 3, 1, 0, 0, 3, 1, 0]
+        narration: "done. z = [0, 1, 0, 3, 1, 0, 0, 3, 1, 0]. prefix 'aab' reappears at indices 3 and 7."
+
+notes: |
+  Wong palette assignments (per style-guide.md):
+    sky blue   #56B4E9 — cells inside the current [l, r) window
+    orange     #E69F00 — the active position i
+    bluish grn #009E73 — finalized z values
+    vermilion  #D55E00 — mismatch that stopped extension
+    yellow     #F0E442 — mirror position i - l (transient, only during mirror init)
+  Reduced-motion fallback samples steps {0, 3, 8, 9, 15, 18} for six stills:
+  init / first window slide / longest-match window slide / first mirror reuse /
+  last window slide / final answer.
+  Trace generated by instrumenting Python reference; replay
+  produces byte-identical output.

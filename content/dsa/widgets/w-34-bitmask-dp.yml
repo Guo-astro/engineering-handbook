@@ -1,0 +1,193 @@
+# Bitmask BFS over (node, mask) states for LC 847
+# Single-panel chapter widget for 9.14. Animates how the visited-mask
+# composes with the current node to form the shortest-path search state.
+# Canonical input: 3-node line graph, BFS started from node 0 only
+# (the full LC algorithm starts from all n nodes simultaneously; the
+# narration explains the parallel-start expansion).
+
+id: w-34-bitmask-dp
+title: "Bitmask BFS: (node, mask) state expansion"
+type: single-panel
+level: 1
+modes: [preset, randomize, edit]
+
+caps:
+  num_nodes: { min: 2, max: 6 }
+  edges_per_node: { min: 1, max: 5 }
+
+commands:
+  - name: enqueue_start
+    payload: { node: 'integer', mask: 'integer', dist: 'integer' }
+    description: "Seed the BFS with a (node, single-bit-mask) at distance 0."
+  - name: dequeue
+    payload: { node: 'integer', mask: 'integer', dist: 'integer' }
+    description: "Pop a state from the front of the BFS queue."
+  - name: relax_neighbor
+    payload:
+      from_node: 'integer'
+      to_node: 'integer'
+      old_mask: 'integer'
+      new_mask: 'integer'
+      dist: 'integer'
+      visited: 'boolean'
+    description: |
+      Try to extend (from_node, old_mask) via edge to to_node, producing
+      (to_node, new_mask) with dist+1. If new_mask was unvisited, enqueue
+      and mark visited; otherwise skip.
+  - name: goal_reached
+    payload: { node: 'integer', mask: 'integer', dist: 'integer' }
+    description: "First (any_node, full_mask) state dequeued; BFS terminates."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-34-bitmask-dp-fallback.svg
+  keyframes_used: [0, 2, 5, 7]
+
+panels:
+  default:
+    chapter: "9.14"
+    label: "(node, mask) BFS on a 3-node line graph"
+    canonical_input: |
+      graph: [[1], [0, 2], [1]]
+      start: 0     # widget shows BFS from node 0 only for clarity
+      n_nodes: 3
+      full_mask: 0b111
+      expected_dist: 2
+    presets:
+      - id: line_3
+        label: "3-node line: 0 -- 1 -- 2 (start at 0)"
+        input: { graph: [[1], [0, 2], [1]], start: 0 }
+      - id: triangle_3
+        label: "3-node triangle: 0 -- 1 -- 2 -- 0 (start at 0)"
+        input: { graph: [[1, 2], [0, 2], [0, 1]], start: 0 }
+    n_steps: 8
+    keyframes:
+      - step: 0
+        kind: init
+        state:
+          graph: [[1], [0, 2], [1]]
+          n: 3
+          full_mask: 7   # 0b111
+          queue: []
+          visited: { "(0,001)": false, "(0,010)": false, "(0,011)": false, "(0,100)": false, "(0,101)": false, "(0,110)": false, "(0,111)": false, "(1,001)": false, "(1,010)": false, "(1,011)": false, "(1,100)": false, "(1,101)": false, "(1,110)": false, "(1,111)": false, "(2,001)": false, "(2,010)": false, "(2,011)": false, "(2,100)": false, "(2,101)": false, "(2,110)": false, "(2,111)": false }
+        narration: |
+          Three-node line graph. State is (current_node, visited_mask),
+          where bit i of mask is set if node i has been seen on this
+          path. Goal: reach any (node, 0b111) state. The full LC 847
+          BFS seeds every starting node; this trace shows the search
+          from node 0 only to keep the picture small.
+      - step: 1
+        kind: enqueue_start
+        payload: { node: 0, mask: 1, dist: 0 }   # mask 0b001
+        state:
+          queue: [{ node: 0, mask: 1, dist: 0 }]
+          visited: { "(0,001)": true }
+          frontier: [{ node: 0, mask: "001" }]
+        narration: |
+          Seed: (node 0, mask 0b001, dist 0). Bit 0 is set because we are
+          AT node 0 with node 0 already visited. The visited table marks
+          this state seen so the BFS never re-enters it.
+      - step: 2
+        kind: dequeue
+        payload: { node: 0, mask: 1, dist: 0 }
+        state:
+          queue: []
+          current: { node: 0, mask: 1, dist: 0 }
+        narration: |
+          Pop (0, 0b001, 0). Mask is not full (0b001 != 0b111), so expand
+          to every neighbor of node 0. graph[0] = [1], so the only edge
+          out is to node 1.
+      - step: 3
+        kind: relax_neighbor
+        payload:
+          from_node: 0
+          to_node: 1
+          old_mask: 1     # 0b001
+          new_mask: 3     # 0b011
+          dist: 1
+          visited: false
+        state:
+          queue: [{ node: 1, mask: 3, dist: 1 }]
+          visited: { "(0,001)": true, "(1,011)": true }
+          frontier: [{ node: 1, mask: "011" }]
+        narration: |
+          Walk to neighbor 1. New mask = 0b001 | (1<<1) = 0b011 (nodes 0
+          and 1 both visited). State (1, 0b011) was unseen, so enqueue
+          with dist 1 and mark visited.
+      - step: 4
+        kind: dequeue
+        payload: { node: 1, mask: 3, dist: 1 }
+        state:
+          queue: []
+          current: { node: 1, mask: 3, dist: 1 }
+        narration: |
+          Pop (1, 0b011, 1). Mask not full. graph[1] = [0, 2]; relax
+          both neighbors.
+      - step: 5
+        kind: relax_neighbor
+        payload:
+          from_node: 1
+          to_node: 0
+          old_mask: 3     # 0b011
+          new_mask: 3     # 0b011 (bit 0 already set)
+          dist: 2
+          visited: false  # state (0, 0b011) had not been seen yet
+        state:
+          queue: [{ node: 0, mask: 3, dist: 2 }]
+          visited: { "(0,001)": true, "(1,011)": true, "(0,011)": true }
+          frontier: [{ node: 0, mask: "011" }]
+        narration: |
+          Try edge 1 -> 0. New mask = 0b011 | (1<<0) = 0b011 (bit 0 was
+          already set; revisiting node 0 doesn't add information). State
+          (0, 0b011) was unseen — enqueue at dist 2. Revisits ARE allowed
+          on this problem; the (node, mask) keying just prevents looping
+          through identical states.
+      - step: 6
+        kind: relax_neighbor
+        payload:
+          from_node: 1
+          to_node: 2
+          old_mask: 3     # 0b011
+          new_mask: 7     # 0b111 — FULL
+          dist: 2
+          visited: false
+        state:
+          queue: [{ node: 0, mask: 3, dist: 2 }, { node: 2, mask: 7, dist: 2 }]
+          visited: { "(0,001)": true, "(1,011)": true, "(0,011)": true, "(2,111)": true }
+          frontier: [{ node: 2, mask: "111" }]
+        narration: |
+          Try edge 1 -> 2. New mask = 0b011 | (1<<2) = 0b111 — every
+          node visited. State (2, 0b111) is unseen, enqueue at dist 2.
+          The mask is full but we don't return yet; the answer is the
+          dist of the FIRST popped full-mask state.
+      - step: 7
+        kind: goal_reached
+        payload: { node: 2, mask: 7, dist: 2 }
+        state:
+          queue: [{ node: 0, mask: 3, dist: 2 }]
+          current: { node: 2, mask: 7, dist: 2 }
+          answer: 2
+        narration: |
+          BFS pops in FIFO order. (0, 0b011, 2) comes off first but its
+          mask isn't full, so it would expand neighbors (no new states —
+          all destinations already seen). Next pop is (2, 0b111, 2) —
+          full mask, return dist 2. The walk is 0 -> 1 -> 2, length 2
+          edges, every node visited.
+
+selector_default: default
+
+notes: |
+  Single-panel chapter widget for 9.14 Bitmask DP. Animates the (node,
+  mask) state shape that defines bitmask search: state count = n * 2^n,
+  transitions iterate node neighbors and OR the destination's bit into
+  the mask. The 3-node line preset is the smallest input that exercises
+  all four state classes (start, partial-mask non-goal, partial-mask
+  visited-revisit, full-mask goal).
+
+   ships `animations: []` — the chapter widget is a Phase 2
+  addition per the user spec for chapter 9.14, which calls for a small-
+  graph mask-transition demo. The 8-step trace above is constructed from
+  the verified LC 847 reference at part-9-dynamic-programming/14-
+  bitmask-dp/lc-847/sol.py walking the canonical 3-node line input;
+  the dist returned matches BFS from-node-0 (= 2). The full LC 847
+  algorithm seeds all n starting nodes; widget shows one for clarity.

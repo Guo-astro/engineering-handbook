@@ -1,0 +1,103 @@
+# Editorial widget — LC 11 Container With Most Water
+# Editorial widgets animate ONE specific signature problem at fixed input.
+# Preset-only; no randomize, no edit.
+
+id: e-LC011-container
+title: "Container With Most Water (LC 11) — greedy two-pointer shrink"
+type: editorial-single-panel
+level: 1
+modes: [preset]
+
+# Editorial widgets do not expose user input — the canonical input is the lesson.
+caps:
+  array_length: { fixed: 9 }       # exactly the canonical input length
+
+commands:
+  - name: measureArea
+    payload: { l: 'integer', r: 'integer', h_l: 'integer', h_r: 'integer', area: 'integer', best: 'integer' }
+    description: "Show min(h[l], h[r]) * (r-l) and compare against running best."
+  - name: shrinkShorter
+    payload: { which: 'l | r', from_index: 'integer', to_index: 'integer' }
+    description: "Advance the pointer on the shorter wall by 1; flash the wall that just got discarded."
+  - name: foundBest
+    payload: { l: 'integer', r: 'integer', area: 'integer' }
+    description: "Latch the best-area pair; cells turn solid green."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/e-LC011-container-fallback.svg
+  keyframes_used: [0, 2, 4, 8]      # init, the hit at 49, a mid-state, terminate
+
+panels:
+  default:
+    chapter: "3.0"
+    primary_chapter: part-3-pointers-window-prefix/00-two-pointers-opposite
+    label: "Container With Most Water — greedy shrink"
+    canonical_input: |
+      height = [1, 8, 6, 2, 5, 4, 8, 3, 7]
+    # Why this input: LC's canonical example. The optimal pair is at indices
+    # [1, 8] (values 8 and 7) for area 49, found on step 2. The remaining
+    # iterations show why advancing the shorter wall — and only the shorter
+    # wall — is the rule: every alternative move strictly shrinks area.
+    presets: []                      # editorial widgets are preset-as-canonical-input
+    n_steps: 9
+    keyframes:
+      - step: 0
+        kind: init
+        state: { l: 0, r: 8, h_l: 1, h_r: 7, area: null, best: 0 }
+        narration: "Place pointers at the two ends. l=0 (height 1), r=8 (height 7). Best area so far: 0."
+      - step: 1
+        kind: measureArea
+        payload: { l: 0, r: 8, h_l: 1, h_r: 7, area: 8, best: 8 }
+        state: { l: 0, r: 8, area: 8, best: 8 }
+        narration: "min(1, 7) * 8 = 8. Best updates to 8. Wall l (height 1) is the shorter; advance l."
+      - step: 2
+        kind: measureArea
+        payload: { l: 1, r: 8, h_l: 8, h_r: 7, area: 49, best: 49 }
+        state: { l: 1, r: 8, area: 49, best: 49 }
+        narration: "min(8, 7) * 7 = 49. Best updates to 49. The optimal pair, found on the second probe."
+      - step: 3
+        kind: shrinkShorter
+        payload: { which: r, from_index: 8, to_index: 7 }
+        state: { l: 1, r: 7, area: null, best: 49 }
+        narration: "Wall r (height 7) is now the shorter; advance r to index 7 (height 3)."
+      - step: 4
+        kind: measureArea
+        payload: { l: 1, r: 7, h_l: 8, h_r: 3, area: 18, best: 49 }
+        state: { l: 1, r: 7, area: 18, best: 49 }
+        narration: "min(8, 3) * 6 = 18. Well below 49. Width has dropped; the bound is the shorter wall."
+      - step: 5
+        kind: measureArea
+        payload: { l: 1, r: 6, h_l: 8, h_r: 8, area: 40, best: 49 }
+        state: { l: 1, r: 6, area: 40, best: 49 }
+        narration: "min(8, 8) * 5 = 40. Tie on heights; the algorithm advances r (else branch on strict <)."
+      - step: 6
+        kind: measureArea
+        payload: { l: 1, r: 5, h_l: 8, h_r: 4, area: 16, best: 49 }
+        state: { l: 1, r: 5, area: 16, best: 49 }
+        narration: "min(8, 4) * 4 = 16. Smaller still. Advance the shorter side, r, again."
+      - step: 7
+        kind: measureArea
+        payload: { l: 1, r: 2, h_l: 8, h_r: 6, area: 6, best: 49 }
+        state: { l: 1, r: 2, area: 6, best: 49 }
+        narration: "Width has collapsed to 1. min(8, 6) * 1 = 6. Best holds at 49."
+      - step: 8
+        kind: foundBest
+        payload: { l: 1, r: 8, area: 49 }
+        state: { l: 1, r: 1, area: null, best: 49, result: 49 }
+        narration: "Pointers cross. Final answer: 49, the area between walls at indices 1 and 8."
+
+lc_id: 11
+difficulty: medium
+algorithm: two-pointer-greedy-shrink
+
+notes: |
+  Animates the case-analysis proof: at each
+  state, advancing the taller wall keeps min(h[l], h[r]) the same or worse
+  while strictly shrinking width, so area cannot grow. Only advancing the
+  shorter wall opens the possibility of a larger area. The optimal pair is
+  found on step 2; the remaining steps confirm no later pair beats it.
+
+  Distinct from chapter widget w-08-two-pointers-3sum, which is the
+  configurable two-pointer-on-sorted demo. e-LC011 is preset-only and
+  fixed to LC 11's standard test case.

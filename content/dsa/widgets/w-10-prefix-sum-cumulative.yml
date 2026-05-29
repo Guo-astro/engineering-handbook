@@ -1,0 +1,61 @@
+# Prefix sum cumulative
+# Single-panel chapter widget. Reused as a row component inside w-35.
+
+id: w-10-prefix-sum-cumulative
+title: "Prefix sum (cumulative + range query)"
+type: single-panel
+level: 1
+modes: [preset, randomize, edit]
+
+caps:
+  array_length: { min: 4, max: 32 }
+  values: { min: -99, max: 99 }
+
+commands:
+  - name: cumulate
+    payload: { index: 'integer', runningSum: 'integer' }
+    description: "Append running sum to the prefix-sum row at index."
+  - name: query
+    payload: { l: 'integer', r: 'integer', result: 'integer' }
+    description: "Highlight prefix[r+1] and prefix[l]; show the subtraction."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-10-prefix-sum-cumulative-fallback.svg
+  keyframes_used: [0, "build_end", "first_query", "n_steps-1"]
+
+panels:
+  default:
+    chapter: "3.4"
+    label: "Prefix sums"
+    canonical_input: |
+      nums = [3, -1, 4, 1, 5, -9, 2, 6]
+      query = [2, 5]
+    presets:
+      - id: range_sum_query
+        label: "Range sum query (LC 303)"
+        input: { nums: [-2, 0, 3, -5, 2, -1], queries: [[0,2], [2,5], [0,5]] }
+    n_steps: 16
+    keyframes:
+      - { id: 0,  type: init,             payload: { prefix: [0, null, null, null, null, null, null, null, null] }, message: "Seed prefix[0] = 0; the empty-sum sentinel sits to the left of nums[0]. Note prefix has length n+1 = 9, not 8." }
+      - { id: 1,  type: cumulate,         targets: [nums-0, prefix-1], payload: { i: 0, runningSum: 3 },   message: "Read nums[0] = 3; write prefix[1] = prefix[0] + nums[0] = 0 + 3 = 3." }
+      - { id: 2,  type: cumulate,         targets: [nums-1, prefix-2], payload: { i: 1, runningSum: 2 },   message: "Read nums[1] = -1; write prefix[2] = 3 + (-1) = 2." }
+      - { id: 3,  type: cumulate,         targets: [nums-2, prefix-3], payload: { i: 2, runningSum: 6 },   message: "Read nums[2] = 4; write prefix[3] = 2 + 4 = 6." }
+      - { id: 4,  type: cumulate,         targets: [nums-3, prefix-4], payload: { i: 3, runningSum: 7 },   message: "Read nums[3] = 1; write prefix[4] = 6 + 1 = 7." }
+      - { id: 5,  type: cumulate,         targets: [nums-4, prefix-5], payload: { i: 4, runningSum: 12 },  message: "Read nums[4] = 5; write prefix[5] = 7 + 5 = 12." }
+      - { id: 6,  type: cumulate,         targets: [nums-5, prefix-6], payload: { i: 5, runningSum: 3 },   message: "Read nums[5] = -9; write prefix[6] = 12 + (-9) = 3." }
+      - { id: 7,  type: cumulate,         targets: [nums-6, prefix-7], payload: { i: 6, runningSum: 5 },   message: "Read nums[6] = 2; write prefix[7] = 3 + 2 = 5." }
+      - { id: 8,  type: cumulate,         targets: [nums-7, prefix-8], payload: { i: 7, runningSum: 11 },  message: "Read nums[7] = 6; write prefix[8] = 5 + 6 = 11." }
+      - { id: 9,  type: build_complete,   payload: { prefix: [0, 3, 2, 6, 7, 12, 3, 5, 11] },              message: "Build complete. Every range query is now two reads and one subtraction." }
+      - { id: 10, type: start_query,      payload: { l: 2, r: 5 },                                          message: "Query: sumRange(2, 5). Recover the sum of nums[2..5] inclusive." }
+      - { id: 11, type: highlight_slice,  targets: [nums-2, nums-3, nums-4, nums-5], payload: { l: 2, r: 5 }, message: "Highlight the slice nums[2..5] = [4, 1, 5, -9]." }
+      - { id: 12, type: read_prefix_pair, targets: [prefix-2, prefix-6], payload: { minus: 2, plus: 3 },    message: "Read prefix[r+1] = prefix[6] = 3 (minuend) and prefix[l] = prefix[2] = 2 (subtrahend). The +1 offset on r is the empty-sum sentinel earning its keep." }
+      - { id: 13, type: compute,          payload: { expression: "3 - 2", result: 1 },                     message: "Compute prefix[6] - prefix[2] = 3 - 2 = 1." }
+      - { id: 14, type: emit_answer,      payload: { l: 2, r: 5, answer: 1 },                              message: "Answer: sumRange(2, 5) = 1. Two reads and one subtract, regardless of slice length." }
+      - { id: 15, type: done,             payload: {},                                                      message: "Query phase complete. Re-run from step 10 with a different (l, r) to query a different range against the same prefix table." }
+
+notes: |
+  Two stacked rows: input array on top, prefix-sum row growing left-to-right.
+  Build phase ends with a forced keyframe at index n; query phase begins
+  with the first range query. Cross-field validator on edit mode:
+  l <= r < length.

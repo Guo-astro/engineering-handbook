@@ -21,7 +21,7 @@ retry_wait_time = 5
 timeout = 30
 
 # User-Agent for requests (avoids 403s from some servers).
-user_agent = "lychee-action/HLD-Handbook-CI (+https://github.com/handbook-academy/hld-handbook)"
+user_agent = "lychee-action/Engineering-Handbook-CI (+https://github.com/handbook-academy/engineering-handbook)"
 
 # Exclude known-finicky domains where heuristic validation is unreliable.
 exclude = [

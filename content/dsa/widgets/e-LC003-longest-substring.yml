@@ -1,0 +1,107 @@
+# Editorial widget — LC 3 Longest Substring Without Repeating Characters
+# Editorial widgets animate ONE specific signature problem at fixed input.
+# Preset-only; no randomize, no edit.
+
+id: e-LC003-longest-substring
+title: "Longest Substring Without Repeating Characters (LC 3) — last-index jump"
+type: editorial-single-panel
+level: 1
+modes: [preset]
+
+# Editorial widgets do not expose user input — the canonical input is the lesson.
+caps:
+  array_length: { fixed: 6 }       # exactly the canonical input length
+
+commands:
+  - name: readChar
+    payload: { i: 'integer', ch: 'string' }
+    description: "Highlight s[i] as the next char to process."
+  - name: lookupLast
+    payload: { ch: 'string', prev: 'integer | null', in_window: 'boolean' }
+    description: "Probe last_index map; flash entry; report whether prev >= l."
+  - name: jumpLeft
+    payload: { from_l: 'integer', to_l: 'integer' }
+    description: "Animate l jumping past the duplicate; mid-cells dim."
+  - name: writeLast
+    payload: { ch: 'string', new_value: 'integer' }
+    description: "Insert or update last_index[ch] = i."
+  - name: updateBest
+    payload: { length: 'integer', updated: 'boolean' }
+    description: "Recompute r - l + 1; flash if it raises best."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/e-LC003-longest-substring-fallback.svg
+  keyframes_used: [0, 3, 6, 8]      # init, first jump, second jump, terminate
+
+panels:
+  default:
+    chapter: "3.3"
+    primary_chapter: part-3-pointers-window-prefix/03-sliding-window-variable
+    label: "LC 3 — last-index jump on \"pwwkew\""
+    canonical_input: |
+      s = "pwwkew"
+    # Why "pwwkew" not "abcabcbb": "pwwkew" exercises BOTH the inside-window
+    # jump (r=2, w seen at index 1, jump from l=0 to l=2) AND the
+    # outside-window stale-entry case (r=5, w last seen at index 2 which is
+    # still >= l=2, so jump again). The expected answer 3 is delivered at
+    # r=4 ("wke"), not at the end — the widget surfaces that "the answer
+    # was already found" beat.
+    presets: []                      # editorial widgets are preset-as-canonical-input
+    n_steps: 9
+    keyframes:
+      - step: 0
+        kind: init
+        state: { l: 0, r: -1, last: {}, best: 0 }
+        narration: "Walk s left to right. last_index maps each char to its most recent index. l is the start of the current window."
+      - step: 1
+        kind: process
+        payload: { i: 0, ch: 'p', prev: null, in_window: false }
+        state: { l: 0, r: 0, last: { p: 0 }, best: 1 }
+        narration: "i=0, ch='p'. last has no entry; no jump. Write last['p']=0. Window length 1; best=1."
+      - step: 2
+        kind: process
+        payload: { i: 1, ch: 'w', prev: null, in_window: false }
+        state: { l: 0, r: 1, last: { p: 0, w: 1 }, best: 2 }
+        narration: "i=1, ch='w'. No prior 'w'; no jump. Write last['w']=1. Window length 2; best=2."
+      - step: 3
+        kind: jump
+        payload: { i: 2, ch: 'w', prev: 1, in_window: true, from_l: 0, to_l: 2 }
+        state: { l: 2, r: 2, last: { p: 0, w: 2 }, best: 2 }
+        narration: "i=2, ch='w'. last['w']=1 and 1 >= l=0; jump l to 2 in O(1). No char-by-char shrink. Update last['w']=2. Window length 1; best stays 2."
+      - step: 4
+        kind: process
+        payload: { i: 3, ch: 'k', prev: null, in_window: false }
+        state: { l: 2, r: 3, last: { p: 0, w: 2, k: 3 }, best: 2 }
+        narration: "i=3, ch='k'. No prior 'k'; no jump. Write last['k']=3. Window length 2; best stays 2."
+      - step: 5
+        kind: process
+        payload: { i: 4, ch: 'e', prev: null, in_window: false }
+        state: { l: 2, r: 4, last: { p: 0, w: 2, k: 3, e: 4 }, best: 3 }
+        narration: "i=4, ch='e'. No prior 'e'. Write last['e']=4. Window \"wke\" length 3; best=3. New optimum."
+      - step: 6
+        kind: jump
+        payload: { i: 5, ch: 'w', prev: 2, in_window: true, from_l: 2, to_l: 3 }
+        state: { l: 3, r: 5, last: { p: 0, w: 5, k: 3, e: 4 }, best: 3 }
+        narration: "i=5, ch='w'. last['w']=2 and 2 >= l=2; jump l to 3. Update last['w']=5. Window \"kew\" length 3; best stays 3."
+      - step: 7
+        kind: stale_demo
+        state: { l: 3, r: 5, last: { p: 0, w: 5, k: 3, e: 4 }, best: 3 }
+        narration: "Note: last['p']=0 is now a STALE entry (0 < l=3). The `prev >= l` guard would skip the jump if 'p' arrived again. Without this guard the algorithm would jump backward and corrupt the window."
+      - step: 8
+        kind: terminate
+        state: { l: 3, r: 5, last: { p: 0, w: 5, k: 3, e: 4 }, best: 3, result: 3 }
+        narration: "End of s. Return best = 3. Total iterations: 6 (one per char). Two jumps replaced what a shrink-loop would have made into eight extra steps."
+
+lc_id: 3
+difficulty: medium
+algorithm: variable-window-with-last-index-jump
+
+notes: |
+  Animates the optimal last-index-jump form (chapter 3.3 §"Last-index jump").
+  Distinct from chapter widget w-09 panel-b, which animates the SHRINK-LOOP
+  form on the same input. The pairing is deliberate: panel-b shows why the
+  jump matters (every shrink step is visible work); this editorial shows
+  what the jump looks like (one O(1) hop replaces the loop).
+  Step 7 (stale_demo) makes the `prev >= l` guard concrete by pointing at
+  last['p']=0 which is now outside the window.

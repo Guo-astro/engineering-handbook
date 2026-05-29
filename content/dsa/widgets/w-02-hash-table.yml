@@ -1,0 +1,344 @@
+# Hash table — chained insert + lookup, with load-factor + resize companion
+# Dual-panel shared widget. Chapter 1.3 mounts panel-a (clean happy path, no
+# collisions, no resize). Chapter 1.4 mounts panel-b (collision storm that
+# drives a load-factor-triggered resize). The two panels step in lockstep so
+# the reader watches the average-case path and the cost path advance together.
+#
+# Fixed-input widget: the keys ["apple","banana","cherry"] are tuned to land
+# in three distinct buckets on a 4-bucket table.
+
+id: w-02-hash-table
+title: "Hash table (chained insert + lookup)"
+type: dual-panel-shared
+level: 1
+modes: [preset]
+
+caps:
+  fixed_input: true
+  combined_step_count: 50
+
+commands:
+  - name: hash
+    payload: { key: 'string|integer', hash_value: 'integer', bucket_index: 'integer' }
+    description: "Compute hash(key) and bucket_index = hash mod capacity; flash the readout above the bucket array."
+  - name: place
+    payload: { key: 'string|integer', value: 'integer', bucket_index: 'integer' }
+    description: "Append (key, value) to the named bucket's chain; size += 1."
+  - name: update
+    payload: { key: 'string|integer', value: 'integer', bucket_index: 'integer' }
+    description: "Key match found in chain; overwrite value in place; size unchanged."
+  - name: scanChain
+    payload: { key: 'string|integer', bucket_index: 'integer', chain_position: 'integer' }
+    description: "Highlight the next chain entry being compared against the lookup key."
+  - name: hit
+    payload: { key: 'string|integer', bucket_index: 'integer', value: 'integer' }
+    description: "Chain entry's key matches; return the value; lookup terminates."
+  - name: miss
+    payload: { key: 'string|integer', bucket_index: 'integer' }
+    description: "End of chain reached; return NotFound; lookup terminates."
+  - name: thresholdReached
+    payload: {}
+    description: "Load factor has exceeded threshold; signal the upcoming resize event before allocating the new buffer."
+  - name: resize
+    payload: { new_capacity: 'integer', new_threshold: 'integer' }
+    description: "Allocate the new bucket array; existing entries enter a pending-rehash state."
+  - name: rehash
+    payload: { key: 'string|integer', bucket_index: 'integer' }
+    description: "Move one previously-stored entry from the old table to its new bucket under the new capacity."
+
+static_fallback:
+  generator: jsdom
+  output: site/static/widgets/w-02-hash-table-fallback.svg
+  panel_a_keyframes_used: [0, 6, 10, 13]
+  panel_b_keyframes_used: [0, 4, 6, 11]
+
+panels:
+  panel-a:
+    chapter: "1.3"
+    label: "Hash table — clean insert + lookup"
+    canonical_input: |
+      operations = [
+        ("insert", "apple", 1),
+        ("insert", "banana", 1),
+        ("insert", "cherry", 1),
+        ("insert", "apple", 1),
+        ("lookup", "banana"),
+        ("lookup", "grape"),
+      ]
+      initial_capacity = 4
+      load_factor_threshold = 0.75
+      hash = ord(key[0])
+    presets: []
+    n_steps: 14
+    keyframes:
+      - step: 0
+        kind: init
+        state:
+          capacity: 4
+          threshold: 3
+          size: 0
+          buckets: [[], [], [], []]
+        narration: "Empty 4-bucket chained hash table. Threshold = 0.75 * 4 = 3 entries before resize."
+      - step: 1
+        kind: hash
+        payload: { key: "apple", hash_value: 97, bucket_index: 1 }
+        state:
+          capacity: 4
+          threshold: 3
+          size: 0
+          buckets: [[], [], [], []]
+          op: { type: "insert", key: "apple", value: 1 }
+        narration: "ord('a') = 97. 97 mod 4 = 1. Target bucket 1."
+      - step: 2
+        kind: place
+        payload: { key: "apple", value: 1, bucket_index: 1 }
+        state:
+          capacity: 4
+          threshold: 3
+          size: 1
+          buckets: [[], [["apple", 1]], [], []]
+        narration: "Bucket 1 is empty. Append (apple, 1). Size = 1."
+      - step: 3
+        kind: hash
+        payload: { key: "banana", hash_value: 98, bucket_index: 2 }
+        state:
+          capacity: 4
+          threshold: 3
+          size: 1
+          buckets: [[], [["apple", 1]], [], []]
+          op: { type: "insert", key: "banana", value: 1 }
+        narration: "ord('b') = 98. 98 mod 4 = 2. Target bucket 2."
+      - step: 4
+        kind: place
+        payload: { key: "banana", value: 1, bucket_index: 2 }
+        state:
+          capacity: 4
+          threshold: 3
+          size: 2
+          buckets: [[], [["apple", 1]], [["banana", 1]], []]
+        narration: "Bucket 2 is empty. Append (banana, 1). Size = 2."
+      - step: 5
+        kind: hash
+        payload: { key: "cherry", hash_value: 99, bucket_index: 3 }
+        state:
+          capacity: 4
+          threshold: 3
+          size: 2
+          buckets: [[], [["apple", 1]], [["banana", 1]], []]
+          op: { type: "insert", key: "cherry", value: 1 }
+        narration: "ord('c') = 99. 99 mod 4 = 3. Target bucket 3."
+      - step: 6
+        kind: place
+        payload: { key: "cherry", value: 1, bucket_index: 3 }
+        state:
+          capacity: 4
+          threshold: 3
+          size: 3
+          buckets: [[], [["apple", 1]], [["banana", 1]], [["cherry", 1]]]
+        narration: "Bucket 3 is empty. Append (cherry, 1). Size = 3. Three distinct buckets, zero collisions."
+      - step: 7
+        kind: hash
+        payload: { key: "apple", hash_value: 97, bucket_index: 1 }
+        state:
+          capacity: 4
+          threshold: 3
+          size: 3
+          buckets: [[], [["apple", 1]], [["banana", 1]], [["cherry", 1]]]
+          op: { type: "insert", key: "apple", value: 1 }
+        narration: "Re-insert apple. Same hash, same bucket: 1."
+      - step: 8
+        kind: update
+        payload: { key: "apple", value: 1, bucket_index: 1 }
+        state:
+          capacity: 4
+          threshold: 3
+          size: 3
+          buckets: [[], [["apple", 1]], [["banana", 1]], [["cherry", 1]]]
+        narration: "Bucket 1 already holds apple. Key match found in chain; overwrite value. Size unchanged."
+      - step: 9
+        kind: hash
+        payload: { key: "banana", hash_value: 98, bucket_index: 2 }
+        state:
+          capacity: 4
+          threshold: 3
+          size: 3
+          buckets: [[], [["apple", 1]], [["banana", 1]], [["cherry", 1]]]
+          op: { type: "lookup", key: "banana" }
+        narration: "Lookup banana. ord('b') = 98. 98 mod 4 = 2. Probe bucket 2."
+      - step: 10
+        kind: hit
+        payload: { key: "banana", bucket_index: 2, value: 1 }
+        state:
+          capacity: 4
+          threshold: 3
+          size: 3
+          buckets: [[], [["apple", 1]], [["banana", 1]], [["cherry", 1]]]
+          result: 1
+        narration: "Bucket 2 holds banana. Key match. Return 1."
+      - step: 11
+        kind: hash
+        payload: { key: "grape", hash_value: 103, bucket_index: 3 }
+        state:
+          capacity: 4
+          threshold: 3
+          size: 3
+          buckets: [[], [["apple", 1]], [["banana", 1]], [["cherry", 1]]]
+          op: { type: "lookup", key: "grape" }
+        narration: "Lookup grape. ord('g') = 103. 103 mod 4 = 3. Probe bucket 3."
+      - step: 12
+        kind: scanChain
+        payload: { key: "grape", bucket_index: 3, chain_position: 0 }
+        state:
+          capacity: 4
+          threshold: 3
+          size: 3
+          buckets: [[], [["apple", 1]], [["banana", 1]], [["cherry", 1]]]
+        narration: "Bucket 3 holds cherry. Key mismatch. Walk to next chain entry."
+      - step: 13
+        kind: miss
+        payload: { key: "grape", bucket_index: 3 }
+        state:
+          capacity: 4
+          threshold: 3
+          size: 3
+          buckets: [[], [["apple", 1]], [["banana", 1]], [["cherry", 1]]]
+          result: null
+        narration: "End of chain. Return NotFound. A non-empty bucket still requires a key comparison per entry."
+
+  panel-b:
+    chapter: "1.4"
+    label: "Hash table — collision storm + resize"
+    canonical_input: |
+      operations = [
+        ("insert", 5, 1),
+        ("insert", 1, 1),
+        ("insert", 9, 1),
+        ("insert", 13, 1),
+        ("insert", 17, 1),
+      ]
+      initial_capacity = 4
+      load_factor_threshold = 0.75
+      hash = "k mod capacity"
+    presets: []
+    n_steps: 12
+    keyframes:
+      - step: 0
+        kind: init
+        state:
+          capacity: 4
+          threshold: 3
+          size: 0
+          buckets: [[], [], [], []]
+        narration: "Empty 4-bucket chained table. Threshold = 0.75 * 4 = 3 entries. The keys 5, 1, 9, 13, 17 are tuned so every one of them hashes to bucket 1 of a 4-bucket table — a worst-case collision storm."
+      - step: 1
+        kind: place
+        payload: { key: 5, value: 1, bucket_index: 1 }
+        state:
+          capacity: 4
+          threshold: 3
+          size: 1
+          buckets: [[], [[5, 1]], [], []]
+        narration: "5 mod 4 = 1. Bucket 1 is empty. Append. Size = 1, load factor 0.25."
+      - step: 2
+        kind: place
+        payload: { key: 1, value: 1, bucket_index: 1 }
+        state:
+          capacity: 4
+          threshold: 3
+          size: 2
+          buckets: [[], [[5, 1], [1, 1]], [], []]
+        narration: "1 mod 4 = 1. Collision. Append to chain. Size = 2, load factor 0.50."
+      - step: 3
+        kind: place
+        payload: { key: 9, value: 1, bucket_index: 1 }
+        state:
+          capacity: 4
+          threshold: 3
+          size: 3
+          buckets: [[], [[5, 1], [1, 1], [9, 1]], [], []]
+        narration: "9 mod 4 = 1. Collision again. Chain length 3. Size = 3, load factor 0.75 — exactly at threshold."
+      - step: 4
+        kind: place
+        payload: { key: 13, value: 1, bucket_index: 1 }
+        state:
+          capacity: 4
+          threshold: 3
+          size: 4
+          buckets: [[], [[5, 1], [1, 1], [9, 1], [13, 1]], [], []]
+          will_resize: true
+        narration: "13 mod 4 = 1. Insert pushes size to 4. Load factor 1.0 > 0.75. Resize triggered for the next step."
+      - step: 5
+        kind: thresholdReached
+        state:
+          capacity: 4
+          threshold: 3
+          size: 4
+          buckets: [[], [[5, 1], [1, 1], [9, 1], [13, 1]], [], []]
+        narration: "Threshold crossed. Allocate a new 8-bucket table; the new threshold becomes 0.75 * 8 = 6 entries."
+      - step: 6
+        kind: resize
+        state:
+          capacity: 8
+          threshold: 6
+          size: 4
+          buckets: [[], [], [], [], [], [], [], []]
+          rehash_pending: [5, 1, 9, 13]
+        narration: "New 8-bucket table. Every existing entry must be rehashed against the new capacity."
+      - step: 7
+        kind: rehash
+        payload: { key: 5, bucket_index: 5 }
+        state:
+          capacity: 8
+          threshold: 6
+          size: 4
+          buckets: [[], [], [], [], [], [[5, 1]], [], []]
+        narration: "5 mod 8 = 5. Rehash to bucket 5."
+      - step: 8
+        kind: rehash
+        payload: { key: 1, bucket_index: 1 }
+        state:
+          capacity: 8
+          threshold: 6
+          size: 4
+          buckets: [[], [[1, 1]], [], [], [], [[5, 1]], [], []]
+        narration: "1 mod 8 = 1. Rehash to bucket 1."
+      - step: 9
+        kind: rehash
+        payload: { key: 9, bucket_index: 1 }
+        state:
+          capacity: 8
+          threshold: 6
+          size: 4
+          buckets: [[], [[1, 1], [9, 1]], [], [], [], [[5, 1]], [], []]
+        narration: "9 mod 8 = 1. Collision with 1, append. The keys that all hashed identically at capacity 4 now scatter."
+      - step: 10
+        kind: rehash
+        payload: { key: 13, bucket_index: 5 }
+        state:
+          capacity: 8
+          threshold: 6
+          size: 4
+          buckets: [[], [[1, 1], [9, 1]], [], [], [], [[5, 1], [13, 1]], [], []]
+        narration: "13 mod 8 = 5. Rehash to bucket 5; the chain there grows to 2."
+      - step: 11
+        kind: place
+        payload: { key: 17, value: 1, bucket_index: 1 }
+        state:
+          capacity: 8
+          threshold: 6
+          size: 5
+          buckets: [[], [[1, 1], [9, 1], [17, 1]], [], [], [], [[5, 1], [13, 1]], [], []]
+        narration: "17 mod 8 = 1. The blocked insert from before the resize now lands cleanly. Size = 5, load factor 0.625, well below the new threshold of 6."
+
+selector_default: panel-a
+
+notes: |
+  Panel-a shipped May 2026 with chapter 1.3 (clean happy path, 14 steps).
+  Panel-b shipped May 2026 with chapter 1.4 (collision storm + load-factor-
+  triggered resize, 12 steps). Combined: 26 / 50 steps under cap.
+  Both panels use fixed inputs (no edit, no randomize). Panel-a's keys
+  "apple"/"banana"/"cherry" are tuned to land in
+  three distinct buckets; panel-b's keys 5/1/9/13/17 are tuned so every key
+  hashes to bucket 1 at capacity 4 (a worst-case collision storm) and then
+  redistributes when the table doubles to capacity 8. Randomization would
+  routinely produce inputs that don't trigger either intended trace.

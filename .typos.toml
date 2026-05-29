@@ -130,6 +130,19 @@ educative = "educative"
 Neet = "Neet"
 neet = "neet"
 
+# DSA-specific terms (algorithm names, author names, identifiers).
+nd = "nd"             # short var name in dijkstra.md (d + w shorthand)
+sais = "sais"         # SA-IS / libsais — induced-sorting suffix-array builders
+SAIS = "SAIS"
+AKS = "AKS"           # Agrawal-Kayal-Saxena primality test
+TRE = "TRE"           # Tail Recursion Elimination (Guido's original phrasing)
+countr = "countr"     # std::countr_zero, std::countr_one (C++20 <bit>)
+Wirth = "Wirth"       # Niklaus Wirth, Algorithms and Data Structures
+Stichting = "Stichting"     # Stichting Mathematisch Centrum (Dijkstra's affiliation)
+Mathematisch = "Mathematisch"
+Canva = "Canva"
+IIT = "IIT"
+
 [files]
 extend-exclude = [
   "*.excalidraw",

@@ -6,7 +6,18 @@ body:
   - type: markdown
     attributes:
       value: |
-        Suggest a topic you believe should be covered in the handbook.
+        Suggest a topic you believe should be covered in one of the handbooks
+        (HLD or DSA today; more curricula planned).
+  - type: dropdown
+    id: book
+    attributes:
+      label: Which book?
+      options:
+        - HLD Handbook (content/hld/)
+        - DSA Handbook (content/dsa/)
+        - Proposing a brand-new book/curriculum
+    validations:
+      required: true
   - type: input
     id: title
     attributes:
@@ -14,25 +25,15 @@ body:
       placeholder: "Distributed Tracing at Scale"
     validations:
       required: true
-  - type: dropdown
+  - type: input
     id: part
     attributes:
       label: Which part does it belong in?
-      options:
-        - Part 0 - Prerequisites
-        - Part 1 - Core Fundamentals
-        - Part 2 - Building Blocks
-        - Part 3 - Distributed Systems Theory
-        - Part 4 - Data Systems
-        - Part 5 - Architecture Patterns
-        - Part 6 - Reliability & Operations
-        - Part 7 - Security at Scale
-        - Part 8 - Case Studies
-        - Part 9 - AI & ML System Design
-        - Part 10 - Frontier & Operational Topics
-        - Part 11 - Interview Framework
-        - Trade-offs Library
-        - Unsure / New part needed
+      description: |
+        HLD parts: Part 0 (Prerequisites) - Part 11 (Interview Framework), or Trade-offs Library.
+        DSA parts: Part 0 (Foundations) - Part 14 (Interview Framework), or Patterns / Editorials.
+        Use "Unsure / new part needed" if it doesn't fit anywhere existing.
+      placeholder: "HLD Part 6 - Reliability & Operations"
     validations:
       required: true
   - type: textarea
