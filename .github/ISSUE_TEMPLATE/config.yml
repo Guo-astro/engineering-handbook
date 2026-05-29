@@ -4,13 +4,13 @@ contact_links:
     url: https://hld.handbook.academy
     about: The best reading experience is at hld.handbook.academy -- search, dark mode, diagram zoom. Free, no sign-up.
   - name: Ask a question
-    url: https://github.com/handbook-academy/hld-handbook/discussions
+    url: https://github.com/handbook-academy/engineering-handbook/discussions
     about: Use GitHub Discussions for questions about the content or community topics.
   - name: Read the style guide
-    url: https://github.com/handbook-academy/hld-handbook/blob/main/STYLE_GUIDE.md
+    url: https://github.com/handbook-academy/engineering-handbook/blob/main/STYLE_GUIDE.md
     about: Read STYLE_GUIDE.md before contributing content.
   - name: Code of conduct
-    url: https://github.com/handbook-academy/hld-handbook/blob/main/CODE_OF_CONDUCT.md
+    url: https://github.com/handbook-academy/engineering-handbook/blob/main/CODE_OF_CONDUCT.md
     about: Review our expectations for community behaviour.
   - name: Private contact (conduct, legal, security)
     url: mailto:hello@handbook.academy

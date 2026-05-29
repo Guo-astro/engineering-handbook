@@ -7,8 +7,8 @@ body:
     attributes:
       value: |
         Thank you for volunteering to write a chapter! This issue reserves the topic
-        so no one else duplicates your work. Please read [CONTRIBUTING.md](https://github.com/handbook-academy/hld-handbook/blob/main/CONTRIBUTING.md)
-        and [STYLE_GUIDE.md](https://github.com/handbook-academy/hld-handbook/blob/main/STYLE_GUIDE.md) before starting.
+        so no one else duplicates your work. Please read [CONTRIBUTING.md](https://github.com/handbook-academy/engineering-handbook/blob/main/CONTRIBUTING.md)
+        and [STYLE_GUIDE.md](https://github.com/handbook-academy/engineering-handbook/blob/main/STYLE_GUIDE.md) before starting.
   - type: input
     id: chapter
     attributes:

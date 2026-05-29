@@ -1,5 +1,5 @@
 {
-  "name": "hld-handbook",
+  "name": "engineering-handbook",
   "version": "0.0.0",
   "description": "The HLD Handbook - Open-source High-Level Design and System Design handbook content",
   "private": true,
@@ -27,10 +27,10 @@
   "packageManager": "npm@10.8.1",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/handbook-academy/hld-handbook.git"
+    "url": "git+https://github.com/handbook-academy/engineering-handbook.git"
   },
   "bugs": {
-    "url": "https://github.com/handbook-academy/hld-handbook/issues"
+    "url": "https://github.com/handbook-academy/engineering-handbook/issues"
   },
   "homepage": "https://handbook.academy",
   "keywords": [

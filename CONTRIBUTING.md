@@ -206,7 +206,7 @@ We are explicitly **not** using a points or ranking system. Contributions of all
 - **Technical questions about writing a chapter:** Open an issue with the `question` label, or ask in [GitHub Discussions](../../discussions).
 - **Bug report for content (typo, factual error, broken link):** Open an issue with the `content: correction` label.
 - **Bug report for the rendered website at hld.handbook.academy:** Open an issue here using the [site bug template](.github/ISSUE_TEMPLATE) with a screenshot and the URL, or email [hello@handbook.academy](mailto:hello@handbook.academy).
-- **Private concern (conduct, legal, security):** Email [hello@handbook.academy](mailto:hello@handbook.academy), open a [private security advisory](https://github.com/handbook-academy/hld-handbook/security/advisories/new) on GitHub, or contact the maintainer via their GitHub profile at [@invincible04](https://github.com/invincible04).
+- **Private concern (conduct, legal, security):** Email [hello@handbook.academy](mailto:hello@handbook.academy), open a [private security advisory](https://github.com/handbook-academy/engineering-handbook/security/advisories/new) on GitHub, or contact the maintainer via their GitHub profile at [@invincible04](https://github.com/invincible04).
 
 By contributing, you agree that your contributions will be licensed under the same terms as the rest of the project (CC BY-SA 4.0).
 

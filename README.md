@@ -11,8 +11,8 @@ DSA Handbook: 120 chapters across 15 parts · ~391,000 words · 226 Mermaid diag
 
 [![License: CC BY-SA 4.0](https://img.shields.io/badge/license-CC%20BY--SA%204.0-blue.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![CI](https://github.com/handbook-academy/hld-handbook/actions/workflows/content-ci.yml/badge.svg)](https://github.com/handbook-academy/hld-handbook/actions)
-[![GitHub stars](https://img.shields.io/github/stars/handbook-academy/hld-handbook?style=social)](https://github.com/handbook-academy/hld-handbook/stargazers)
+[![CI](https://github.com/handbook-academy/engineering-handbook/actions/workflows/content-ci.yml/badge.svg)](https://github.com/handbook-academy/engineering-handbook/actions)
+[![GitHub stars](https://img.shields.io/github/stars/handbook-academy/engineering-handbook?style=social)](https://github.com/handbook-academy/engineering-handbook/stargazers)
 
 **Read free at [handbook.academy](https://handbook.academy)** — landing page links to both books · HLD at [hld.handbook.academy](https://hld.handbook.academy) · DSA at [dsa.handbook.academy](https://dsa.handbook.academy) *(public beta)*
 
@@ -1216,7 +1216,7 @@ If you have **operated one of the systems we cover in Part 8** (payment processi
 
 ### Private/sensitive concerns
 
-- **Security issues in validator scripts or CI:** open a [private security advisory](https://github.com/handbook-academy/hld-handbook/security/advisories/new).
+- **Security issues in validator scripts or CI:** open a [private security advisory](https://github.com/handbook-academy/engineering-handbook/security/advisories/new).
 - **Code of conduct concerns:** email [hello@handbook.academy](mailto:hello@handbook.academy).
 - **Legal or licensing questions:** email [hello@handbook.academy](mailto:hello@handbook.academy).
 - **Direct contact:** [@invincible04](https://github.com/invincible04).
@@ -1226,7 +1226,7 @@ If you have **operated one of the systems we cover in Part 8** (payment processi
 ## Project structure
 
 ```text
-hld-handbook/
+engineering-handbook/
 ├── content/                           # Two open-source books (CC BY-SA 4.0)
 │   ├── hld/                           # HLD Handbook — 181 pages
 │   │   ├── part-0-prerequisites/          # 5 chapters
@@ -1317,8 +1317,8 @@ You don't need anything installed to contribute content — edit Markdown, push,
 ### Setup
 
 ```bash
-git clone https://github.com/handbook-academy/hld-handbook.git
-cd hld-handbook
+git clone https://github.com/handbook-academy/engineering-handbook.git
+cd engineering-handbook
 nvm use                    # pins Node version from .nvmrc
 npm install                # installs markdownlint, @mermaid-js/mermaid-cli, etc.
 ```
@@ -1349,7 +1349,7 @@ Use **[Markdownlab](https://markdownlab.vercel.app)** ([source](https://github.c
 **Open any chapter directly in the editor** by prefixing its GitHub URL with `https://markdownlab.vercel.app/`:
 
 ```text
-https://markdownlab.vercel.app/https://github.com/handbook-academy/hld-handbook/blob/main/content/hld/part-1-core-fundamentals/00-scalability.md
+https://markdownlab.vercel.app/https://github.com/handbook-academy/engineering-handbook/blob/main/content/hld/part-1-core-fundamentals/00-scalability.md
 ```
 
 That URL opens the chapter in Markdownlab pre-loaded and ready to edit. Paste your edits back into a fork → branch → PR.
@@ -1388,7 +1388,7 @@ Yes, and specifically: everything in this repository — both books' content, wr
 
 Yes. CC BY-SA 4.0 allows commercial use provided you:
 
-1. Attribute the original ("Adapted from The HLD Handbook, CC BY-SA 4.0, https://github.com/handbook-academy/hld-handbook")
+1. Attribute the original ("Adapted from The HLD Handbook, CC BY-SA 4.0, https://github.com/handbook-academy/engineering-handbook")
 2. License your derivative under the same CC BY-SA 4.0 terms
 3. Indicate what you changed
 
@@ -1500,14 +1500,14 @@ If you reference this project in academic work, blog posts, books, or courses:
   title        = {The HLD Handbook + DSA Handbook: Open-Source Engineering Curricula},
   year         = {2026},
   publisher    = {GitHub},
-  url          = {https://github.com/handbook-academy/hld-handbook},
+  url          = {https://github.com/handbook-academy/engineering-handbook},
   note         = {HLD: 159 chapters + 22 trade-off pages, ~773K words. DSA: 120 chapters across 15 parts, ~391K words. CC BY-SA 4.0.}
 }
 ```
 
 ### Prose
 
-> *"The HLD Handbook + DSA Handbook" by Aayush Soni, https://github.com/handbook-academy/hld-handbook, CC BY-SA 4.0.*
+> *"The HLD Handbook + DSA Handbook" by Aayush Soni, https://github.com/handbook-academy/engineering-handbook, CC BY-SA 4.0.*
 
 ### Machine-readable
 
@@ -1556,8 +1556,8 @@ We teach the same concepts in our own words, with our own diagrams, and we cite 
 
 ## Community
 
-- **[GitHub Discussions](https://github.com/handbook-academy/hld-handbook/discussions)** — design questions, feedback, sharing what you're building.
-- **[GitHub Issues](https://github.com/handbook-academy/hld-handbook/issues)** — corrections, content requests, chapter proposals.
+- **[GitHub Discussions](https://github.com/handbook-academy/engineering-handbook/discussions)** — design questions, feedback, sharing what you're building.
+- **[GitHub Issues](https://github.com/handbook-academy/engineering-handbook/issues)** — corrections, content requests, chapter proposals.
 - **Email** — [hello@handbook.academy](mailto:hello@handbook.academy) for private or sensitive matters.
 - **Maintainer** — [@invincible04](https://github.com/invincible04).
 
@@ -1565,7 +1565,7 @@ We teach the same concepts in our own words, with our own diagrams, and we cite 
 
 If you find this useful, star the repo. Stars help signal to new contributors that the project is worth their time.
 
-[![Star History Chart](https://api.star-history.com/svg?repos=handbook-academy/hld-handbook&type=Date)](https://star-history.com/#handbook-academy/hld-handbook&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=handbook-academy/engineering-handbook&type=Date)](https://star-history.com/#handbook-academy/engineering-handbook&Date)
 
 ---
 
