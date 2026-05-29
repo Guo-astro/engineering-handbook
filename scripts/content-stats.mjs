@@ -30,7 +30,9 @@ for (const n of Object.keys(PART_TITLES)) {
 
 async function main() {
   const files = [];
-  for await (const f of glob('content/**/*.md')) files.push(f);
+  // HLD-only reporter — the part-number table reflects the HLD curriculum.
+  // DSA stats live in the DSA-specific reporting flow.
+  for await (const f of glob('content/hld/**/*.md')) files.push(f);
 
   let totalWords = 0;
   let totalMermaid = 0;
